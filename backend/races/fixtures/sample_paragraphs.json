@@ -1,0 +1,11 @@
+[
+  {
+    "model": "races.paragraph",
+    "pk": 1,
+    "fields": {
+      "title": "First practice race",
+      "text": "The small blue car waited at the starting line. When the lights turned green, every driver focused on the road ahead. Steady practice builds speed and accuracy.",
+      "created_at": "2026-11-03T00:00:00Z"
+    }
+  }
+]
