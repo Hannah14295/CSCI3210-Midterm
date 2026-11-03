@@ -1,9 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from .models import Paragraph
+from .models import Paragraph, Race
 
 
 class ParagraphAPITests(APITestCase):
@@ -64,3 +66,41 @@ class ParagraphAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("text", response.context["adminform"].form.errors)
         self.assertFalse(Paragraph.objects.exists())
+
+
+class RaceTests(TestCase):
+    def setUp(self):
+        self.host = get_user_model().objects.create_superuser(
+            username="racehost", email="host@example.com", password="test-only-password"
+        )
+        self.paragraph = Paragraph.objects.create(
+            title="Practice", text="Steady practice builds speed and accuracy."
+        )
+
+    def test_race_defaults_and_relationships(self):
+        race = Race.objects.create(host=self.host, paragraph=self.paragraph)
+        race.refresh_from_db()
+        self.assertEqual(race.status, Race.Status.WAITING)
+        self.assertEqual(self.host.hosted_races.get(), race)
+        self.assertEqual(self.paragraph.races.get(), race)
+        with self.assertRaises(ProtectedError):
+            self.paragraph.delete()
+        with self.assertRaises(ProtectedError):
+            self.host.delete()
+
+    def test_model_validation_rejects_unknown_status(self):
+        race = Race(host=self.host, paragraph=self.paragraph, status="unknown")
+        with self.assertRaises(ValidationError):
+            race.full_clean()
+
+    def test_admin_can_create_a_waiting_race(self):
+        self.client.force_login(self.host)
+        response = self.client.post(
+            reverse("admin:races_race_add"),
+            {"host": self.host.pk, "paragraph": self.paragraph.pk, "status": "waiting", "_save": "Save"},
+        )
+        self.assertEqual(response.status_code, 302)
+        race = Race.objects.get()
+        self.assertEqual(race.host, self.host)
+        self.assertEqual(race.paragraph, self.paragraph)
+        self.assertEqual(race.status, Race.Status.WAITING)

@@ -1,7 +1,7 @@
-# TypeRacer midterm: milestone 1
+# TypeRacer midterm: backend learning milestones
 
-This project currently has a Django backend with a paragraph database, an admin
-page for managing paragraphs, and a read-only REST API. Multiplayer, player
+This project currently has a Django backend with paragraph and race models, an admin
+page for managing them, and a read-only paragraph REST API. Multiplayer, player
 registration/login, scores, and the React frontend come in later milestones.
 
 ## Run the project you already have
@@ -141,10 +141,38 @@ the expected variables. `.gitignore` excludes `.env`, the database, the virtual
 environment, and temporary files. A generated local secret is already configured
 on this computer. Debug mode is enabled for local learning.
 
+## Milestone 2: Race model
+
+Open http://127.0.0.1:8000/admin/races/race/ and choose Add race. Select an existing
+paragraph and your user account as host, leave status as Waiting, and save.
+
+`Race` in `backend/races/models.py` stores two foreign keys: `paragraph` points to
+a Paragraph, and `host` points to a User. Multiple races can reference the same
+paragraph or host. `on_delete=models.PROTECT` prevents deletion of a paragraph or
+host while a race references it. The database stores the referenced IDs rather
+than duplicating the passage or account. Editing a paragraph therefore changes
+the passage seen through its related races; immutable race text will need attention
+when gameplay and historical results are implemented.
+
+`Status` defines the available labels: Waiting, Running, and Finished. New races
+default to Waiting. Choices validate values in Django forms/model validation;
+they do not implement race transitions or timers. Status is manually editable
+in the admin at this stage.
+
+`related_name` provides reverse access: `paragraph.races.all()` finds races using
+that paragraph, and `user.hosted_races.all()` finds races hosted by that user.
+`Meta.ordering` lists newest races first. `__str__` supplies a readable label.
+
+`RaceAdmin` in `backend/races/admin.py` defines list columns, a status filter, and
+search by paragraph title or host username. `list_select_related` loads the
+paragraph and host alongside each race to avoid separate database queries per row.
+
+`backend/races/migrations/0002_race.py` records the table creation. It has already
+been applied locally using `migrate`. No race API endpoints exist yet.
+
 ## Next milestone
 
-Add the `Race` and `RaceParticipant` models and learn their relationships to
-Django's existing `User` model and the `Paragraph` model. After that, add player
+Add the `RaceParticipant` model to connect players to races. After that, add player
 authentication and create/join/start race APIs before introducing WebSockets.
 
 Useful official references:
