@@ -247,6 +247,22 @@
 .race-room .typing-surface { border: 1px solid var(--arena-border); border-radius: 10px; background: #fcfbff; }
 .race-room .typing-passage { padding: 16px; font-size: 19px; line-height: 1.9; }
 
+/* Finish celebrations sit above the results dialog without blocking controls. */
+.finish-confetti {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 10000;
+}
+.finish-confetti::backdrop { background: transparent; pointer-events: none; }
+
 /* Music controls are shown only during active typing. */
 .race-room .race-music {
   display: flex;

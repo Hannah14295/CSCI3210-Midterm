@@ -9,6 +9,7 @@ import { previewTyping } from '../typing';
 import { raceResults } from '../raceResults';
 import { RaceResultsDialog } from './RaceResultsDialog';
 import { RaceMusic } from './RaceMusic';
+import { FinishConfetti } from './FinishConfetti';
 
 const Passage = memo(function Passage({
   target,
@@ -185,5 +186,6 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
         </div>
       </section>
     </>}
+    <FinishConfetti finished={own ? finished : null} />
   </div>;
 }
