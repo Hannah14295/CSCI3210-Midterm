@@ -192,8 +192,42 @@
 
 /* Inside a race: simple progress bars, statistics, and a focused typing area. */
 .race-room .room-heading { margin-bottom: 24px; font-size: 13px; }
-.race-room .connection { color: var(--arena-muted); }
-.race-room .connection.connected { color: #286645; }
+.race-room .text-button.back,
+.race-room .connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--arena-border);
+  border-radius: 20px;
+  color: var(--arena-muted);
+  font-weight: bold;
+}
+.race-room .connection i {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #81778e;
+}
+.race-room .connection.connected {
+  color: #08752e;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+.race-room .text-button.back {
+  color: var(--arena-ink);
+  background: #efe8fb;
+  border-color: #c9bedb;
+  text-decoration: none;
+}
+.race-room .text-button.back:hover { background: #e0d5f5; }
+.race-room .connection.connected i {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px #bbf7d0;
+}
+.race-room .connection.connecting i { background: #b77908; }
+.race-room .connection.disconnected i { background: #c53030; }
 .race-room .racer-list { display: grid; gap: 16px; padding: 0; list-style: none; }
 .race-room .racer-progress { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr 44px; align-items: center; gap: 16px; font-size: 14px; }
 .race-room .racer-progress > span:first-child { overflow-wrap: anywhere; }
