@@ -1,0 +1,4 @@
+# Render executes these on Linux, even when the working copy is on Windows.
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

@@ -99,8 +99,9 @@ the user is signed into admin as Hannah while playing as another account.
   mistakes lower accuracy and WPM rather than preventing completion.
 - Font downloads use Google Fonts, with system fonts as fallback if offline.
 - This proxy applies to the development server, not the built static files.
-  Deployment needs same-origin API/WebSocket routing and shared Channels storage
-  if multiple Django processes are used.
+  Hosted builds use `VITE_BACKEND_URL` for API and secure WebSocket requests.
+  The Pages workflow sets the repository asset path with `VITE_BASE_PATH`.
+  See `../DEPLOYMENT.md` for the GitHub Pages + Render setup checklist.
 
 ## Verification performed
 

@@ -156,6 +156,17 @@ class RaceWebSocketTests(TransactionTestCase):
         finally:
             await socket.disconnect()
 
+    async def test_github_pages_origin_can_connect_with_a_player_token(self):
+        socket = WebsocketCommunicator(
+            application, f"/ws/races/{self.race.pk}/?auth=token",
+            headers=[(b"origin", b"https://hannah14295.github.io")],
+        )
+        try:
+            connected = await self.authenticate(socket, self.token)
+            self.assertEqual(connected["player"]["id"], self.player.pk)
+        finally:
+            await socket.disconnect()
+
     async def test_oversized_frame_is_closed(self):
         socket = self.communicator()
         try:

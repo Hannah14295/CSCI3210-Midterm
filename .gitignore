@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 *.sqlite3-journal
+backend/staticfiles/
 .env
 !.env.example
 tmp/

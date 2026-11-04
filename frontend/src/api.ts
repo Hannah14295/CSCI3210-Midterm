@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { apiUrl } from './config';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -20,9 +21,10 @@ export async function request<T extends z.ZodType>(
   path: string, schema: T, token: string | null = null,
   options: { method?: 'GET' | 'POST'; body?: unknown; signal?: AbortSignal } = {},
 ): Promise<z.infer<T>> {
+  const url = apiUrl(path);
   let response: Response;
   try {
-    response = await fetch(`/api/${path}`, {
+    response = await fetch(url, {
       method: options.method || 'GET', credentials: 'omit', signal: options.signal,
       headers: {
         Accept: 'application/json',
@@ -33,7 +35,9 @@ export async function request<T extends z.ZodType>(
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
-    throw new ApiError(0, 'Cannot reach the backend. Check that Django is running on port 8000.');
+    throw new ApiError(0, import.meta.env.DEV
+      ? 'Cannot reach the backend. Check that Django is running on port 8000.'
+      : 'Cannot reach the game server. It may be starting up; please try again shortly.');
   }
   const data: unknown = await response.json().catch(() => null);
   if (!response.ok) {

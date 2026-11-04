@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { describeError } from '../api';
+import { webSocketUrl } from '../config';
 import { socketEventSchema } from '../types';
 import type { Race } from '../types';
 
@@ -20,9 +21,15 @@ export function useRace(raceId: number, token: string, playerId: number) {
     setConnection('connecting'); setError(''); setRace(null);
     pending.current = false;
     let active = true;
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
     // Token mode avoids accidentally using a different account's admin cookie.
-    const socket = new WebSocket(`${protocol}://${location.host}/ws/races/${raceId}/?auth=token`);
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(webSocketUrl(raceId));
+    } catch (problem) {
+      setError(describeError(problem));
+      setConnection('disconnected');
+      return;
+    }
     socketRef.current = socket;
     socket.onmessage = event => {
       if (!active || typeof event.data !== 'string') return;
@@ -70,7 +77,9 @@ export function useRace(raceId: number, token: string, playerId: number) {
       };
       setError(messages[event.code] || 'Live connection closed. Reconnect to load your last saved input.');
     };
-    socket.onerror = () => { if (active) setError('Cannot connect live. Check Django is running and reconnect.'); };
+    socket.onerror = () => {
+      if (active) setError('Cannot connect live. The server may be starting up; try reconnecting shortly.');
+    };
     return () => {
       active = false;
       if (timer.current) clearTimeout(timer.current);

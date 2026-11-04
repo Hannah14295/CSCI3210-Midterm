@@ -1,5 +1,7 @@
 # TypeRacer midterm: backend learning milestones
 
+For GitHub Pages + Render hosting, follow the prepared checklist in [DEPLOYMENT.md](DEPLOYMENT.md).
+
 This project currently has a Django backend with paragraph and race models, an admin
 page for managing them, a read-only paragraph REST API, and player registration,
 login, and current-user APIs. Live typing, saved WPM results, and a historical
