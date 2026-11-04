@@ -250,7 +250,8 @@ Run all current tests:
 
 ## Next milestone
 
-Add live typing updates, progress validation, scoring, and leaderboard APIs.
+Add validated typing progress, scoring, and leaderboard APIs over the live
+transport described below.
 
 ## Milestone 5: Race APIs
 
@@ -335,6 +336,95 @@ Use the API start action to create a consistent running race and start timestamp
 Migration `0004_race_started_at.py` adds the nullable start timestamp. Older races
 retain their existing state and have no start timestamp until started through
 the API from Waiting.
+
+## Milestone 6: Live race connection
+
+Channels and Daphne now enable WebSockets using the same command as before:
+
+```powershell
+.\.venv\Scripts\python.exe backend\manage.py runserver
+```
+
+Fully stop the old server and restart it after this installation. The startup
+output should mention ASGI/Daphne. No new database migration is needed here:
+WebSocket routing changes how messages travel, not the saved table structure.
+
+### Two-tab demonstration
+
+1. Sign into the admin at http://127.0.0.1:8000/admin/.
+2. Create a new race through http://127.0.0.1:8000/api/races/ using its POST form.
+   This automatically enters you as a participant. Note its returned ID.
+3. Open http://127.0.0.1:8000/dev/socket/ in two tabs of that same browser.
+4. Enter that race ID in both tabs and click Connect in each. Leave Token blank
+   when using your admin login. Both should say Connected as your username.
+5. Send a test message from one tab. It should appear in both tabs immediately.
+6. Disconnect one tab. The other remains usable. Reconnect to receive new messages;
+   earlier messages are not stored or replayed.
+
+The demo page is only available while DEBUG is True. It tests live messaging,
+not typing scores. Two tabs signed into the same account are two connections
+belonging to one player, not two different participants. To test two different
+players, use another browser/private window and a different registered account's
+token. That account must first join the same race using its authenticated API.
+If using an admin-created race, add yourself as a participant before connecting.
+
+### Protocol
+
+Connect to `ws://127.0.0.1:8000/ws/races/ID/` (use `wss` on HTTPS). Django's session
+cookie authenticates browsers already signed into admin. Otherwise the server
+sends `{"type":"auth.required"}`; send this frame within 10 seconds:
+
+```json
+{"type":"authenticate","token":"YOUR_API_TOKEN"}
+```
+
+The token travels inside the connection, not in a URL or local storage. The demo
+clears the token field when connecting. Only authenticated, active accounts with
+a RaceParticipant record for this race can join its broadcast group. Do not use
+an account ID as a substitute for authentication.
+
+Successful entry yields a `connected` message with race ID and player identity.
+Then send:
+
+```json
+{"type":"demo.message","text":"Hello race!"}
+```
+
+Every authorized socket in that race, including the sender, receives a message
+with type, race ID, player (id and username), and text. The backend supplies race
+and player identity; client-supplied identities and score fields are ignored.
+Different races use different broadcast groups. Demo messages can be sent in
+any race status and do not affect gameplay, save progress, or calculate WPM.
+Create/join/start HTTP actions do not yet broadcast live state changes.
+
+Membership, active-account status, and token validity are rechecked when sending
+or delivering room messages. Invalid JSON and invalid message shapes return an
+error packet. Frames over 4096 characters close with code 1009; binary frames
+close with 1003. Each connection permits up to 10 incoming messages per second
+(including authentication) before closing with code 4429. Other close codes:
+
+- 4401: authentication missing, invalid, or timed out.
+- 4403: account not authorized for this race (or access removed).
+- 1000: normal closure.
+
+### Files and concepts
+
+- `config/asgi.py` sends HTTP requests to Django and WebSockets to Channels. It
+  checks the connection's Origin against allowed hosts and loads session users.
+- `races/routing.py` maps the WebSocket address to `RaceConsumer`.
+- `races/consumers.py` handles connect, authenticate, receive, broadcast, and
+  disconnect. Consumers handle ongoing connections; HTTP views handle requests.
+- `CHANNEL_LAYERS` in settings is the message delivery mechanism. A race has a
+  group such as `race.7`; group_send reaches that group's current connections.
+- `races/templates/races/socket_test.html` is the small browser test interface.
+- `races/test_websockets.py` tests the ASGI application using simulated clients.
+
+The channel layer currently lives in memory in one server process. Restarting
+the server drops connections and pending messages. A deployed server with more
+than one process needs a shared layer such as Redis; in-memory delivery cannot
+communicate between processes. Use HTTPS/WSS when hosting outside localhost.
+
+Reference: https://channels.readthedocs.io/en/stable/topics/channel_layers.html
 
 Useful official references:
 

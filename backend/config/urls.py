@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.conf import settings
 from django.urls import include, path
-from django.views.generic import RedirectView
+from django.views.generic import RedirectView, TemplateView
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/api/paragraphs/", permanent=False)),
@@ -8,3 +9,8 @@ urlpatterns = [
     path("api/auth/", include("accounts.urls")),
     path("api/", include("races.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += [
+        path("dev/socket/", TemplateView.as_view(template_name="races/socket_test.html"), name="socket-test"),
+    ]

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Race WebSocket test</title>
+  <style>
+    body { font: 1rem/1.6 system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+    label { display: block; margin-top: 1rem; }
+    input { box-sizing: border-box; width: 100%; padding: .6rem; font: inherit; }
+    button { font: inherit; padding: .5rem .9rem; margin: .8rem .4rem 0 0; }
+    pre { padding: 1rem; background: #f0f3f7; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 25rem; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>Race WebSocket test</h1>
+  <p>This developer page tests live messages. It is not the typing game.</p>
+  <ol>
+    <li>Sign into <a href="/admin/">admin</a> in this browser.</li>
+    <li>Create or join a race through <a href="/api/races/">the race API</a>. Your account must be a participant.</li>
+    <li>Open this page in two tabs, enter the same race ID in both, and connect.</li>
+    <li>Send a message in one tab. Both tabs should receive it.</li>
+  </ol>
+  <p>For a regular player's API token, use a separate private browser window without an admin login and paste the token below. A signed-in browser uses its admin session.</p>
+  <form id="connect-form">
+    <label for="race">Race ID</label><input id="race" type="number" min="1" step="1" required>
+    <label for="token">Token (optional when using your admin session)</label><input id="token" type="password" autocomplete="off">
+    <button id="connect" type="submit">Connect</button><button id="disconnect" type="button" disabled>Disconnect</button>
+  </form>
+  <p id="status" role="status">Disconnected</p>
+  <form id="message-form">
+    <label for="message">Test message</label><input id="message" maxlength="200" required>
+    <button id="send" type="submit" disabled>Send to race</button>
+  </form>
+  <h2>Messages received</h2>
+  <pre id="log" aria-live="polite"></pre>
+  <script>
+    const byId = id => document.getElementById(id);
+    let socket = null;
+    let token = '';
+    function log(message) {
+      byId('log').textContent = (byId('log').textContent + message + '\n').slice(-20000);
+      byId('log').scrollTop = byId('log').scrollHeight;
+    }
+    byId('connect-form').addEventListener('submit', event => {
+      event.preventDefault();
+      if (socket && socket.readyState < WebSocket.CLOSING) return;
+      token = byId('token').value.trim();
+      byId('token').value = '';
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      socket = new WebSocket(`${protocol}//${location.host}/ws/races/${byId('race').value}/`);
+      byId('connect').disabled = true;
+      byId('disconnect').disabled = false;
+      byId('status').textContent = 'Connecting…';
+      socket.addEventListener('message', event => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'auth.required') {
+          if (!token) {
+            log('Sign into admin, or supply a player token, then reconnect.');
+            socket.close();
+          } else {
+            socket.send(JSON.stringify({type: 'authenticate', token}));
+          }
+          token = '';
+          return;
+        }
+        if (data.type === 'connected') {
+          token = '';
+          byId('status').textContent = `Connected as ${data.player.username} to race ${data.race_id}`;
+          byId('send').disabled = false;
+        }
+        log(JSON.stringify(data, null, 2));
+      });
+      socket.addEventListener('close', event => {
+        token = '';
+        byId('status').textContent = `Disconnected (code ${event.code})`;
+        byId('connect').disabled = false;
+        byId('disconnect').disabled = true;
+        byId('send').disabled = true;
+        log('Closed. 4401: login/token required; 4403: join this race first; 4429: sending too fast.');
+      });
+      socket.addEventListener('error', () => log('Connection error. Check the server is running with Daphne and restart it after installation.'));
+    });
+    byId('disconnect').addEventListener('click', () => socket?.close());
+    byId('message-form').addEventListener('submit', event => {
+      event.preventDefault();
+      if (socket?.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({type: 'demo.message', text: byId('message').value}));
+        byId('message').value = '';
+      }
+    });
+    window.addEventListener('pagehide', () => socket?.close());
+  </script>
+</body>
+</html>
