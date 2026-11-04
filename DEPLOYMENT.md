@@ -181,6 +181,22 @@ Free web services can sleep after inactivity; free PostgreSQL expires after
 
 ## Checks
 
+### Live connection recovery
+
+Race screens send an authenticated keepalive every 20 seconds, including while
+players wait in the lobby. Replies include a current race snapshot so a missed
+join, start, or finish broadcast can be recovered. Missing replies trigger a new
+connection. Transient disconnects retry automatically with delays capped at
+30 seconds; invalid credentials or revoked access require user action.
+
+Reconnects restore server-saved input and resend a compatible unsent append-only
+draft. Server timing still determines final scores. The host also applies the
+Start API response immediately. A manual Reconnect button remains available.
+
+Deploy both backend and frontend changes together because the keepalive reply
+is part of the shared WebSocket protocol. To investigate any continuing drops,
+compare Render's service logs with the browser console's close code and reason.
+
 ```powershell
 .\.venv\Scripts\python.exe backend\manage.py check
 .\.venv\Scripts\python.exe backend\manage.py test accounts races

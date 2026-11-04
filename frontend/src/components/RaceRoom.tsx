@@ -63,7 +63,7 @@ export function RaceRoom({ raceId, onBack }: { raceId: number; onBack: () => voi
 }
 
 function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; token: string; playerId: number; onBack: () => void }) {
-  const { race, text, typedAt, updateText, connection, error, reconnect } = useRace(raceId, token, playerId);
+  const { race, text, typedAt, updateText, applyRace, connection, error, reconnect } = useRace(raceId, token, playerId);
   const [now, setNow] = useState(Date.now);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState('');
@@ -93,7 +93,7 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
   useEffect(() => { if (canType) input.current?.focus(); }, [canType]);
   async function start() {
     setBusy(true); setActionError('');
-    try { await request(`races/${raceId}/start/`, raceSchema, token, { method: 'POST' }); }
+    try { applyRace(await request(`races/${raceId}/start/`, raceSchema, token, { method: 'POST' })); }
     catch (problem) { setActionError(describeError(problem)); }
     finally { setBusy(false); }
   }
@@ -105,7 +105,7 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
     <div className="room-heading"><button className="text-button back" onClick={onBack}>← Race lobby</button><span className={`connection ${connection}`} role="status"><i />{connection === 'connected' ? 'Live connection' : connection}</span></div>
     <div className="page-heading"><div><span className="eyebrow">ROOM #{raceId}</span><h1>{finished ? 'Across the line.' : race?.status === 'running' ? 'Make every key count.' : 'Your starting line.'}</h1><p className="muted">{race ? `Hosted by ${race.host.username} · ${race.participants.length} ${race.participants.length === 1 ? 'racer' : 'racers'}` : 'Connecting to your race…'}</p></div><button className="button subtle" onClick={copy}>{copied ? 'ID copied ✓' : `Copy race ID #${raceId}`}</button></div>
     <Notice message={error || actionError} />
-    {connection === 'disconnected' && <button className="button dark" onClick={reconnect}>Reconnect to race</button>}
+    {(connection === 'disconnected' || connection === 'reconnecting') && <button className="button dark" onClick={reconnect}>Reconnect to race</button>}
     {race && <>
       <RaceProgress participants={displayedParticipants} playerId={playerId} />
       <div className="stats-grid" aria-label="Your race statistics">

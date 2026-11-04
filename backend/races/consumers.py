@@ -88,6 +88,13 @@ class RaceConsumer(AsyncJsonWebsocketConsumer):
         if access is None:
             await self.close(code=4403)
             return
+        if content.get("type") == "ping":
+            # Keep waiting rooms active and recheck access even while nobody types.
+            await self.send_json({
+                "type": "pong",
+                "race": await database_sync_to_async(race_snapshot)(self.race_id),
+            })
+            return
         text = content.get("text")
         if content.get("type") == "typing.update":
             try:

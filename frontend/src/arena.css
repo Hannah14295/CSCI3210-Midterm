@@ -226,7 +226,8 @@
   background: #16a34a;
   box-shadow: 0 0 0 3px #bbf7d0;
 }
-.race-room .connection.connecting i { background: #b77908; }
+.race-room .connection.connecting i,
+.race-room .connection.reconnecting i { background: #b77908; }
 .race-room .connection.disconnected i { background: #c53030; }
 .race-room .racer-list { display: grid; gap: 16px; padding: 0; list-style: none; }
 .race-room .racer-progress { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr 44px; align-items: center; gap: 16px; font-size: 14px; }

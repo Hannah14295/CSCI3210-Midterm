@@ -27,6 +27,7 @@ export const pageSchema = <T extends z.ZodType>(item: T) => z.object({
 });
 export const socketEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('auth.required') }),
+  z.object({ type: z.literal('pong'), race: raceSchema }),
   z.object({ type: z.literal('connected'), race_id: z.number(), player: userSchema, race: raceSchema, your_text: z.string() }),
   z.object({ type: z.literal('race.updated'), race: raceSchema }),
   metricsSchema.extend({

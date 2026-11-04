@@ -75,6 +75,40 @@ class RaceWebSocketTests(TransactionTestCase):
         finally:
             await socket.disconnect()
 
+    async def test_waiting_room_keepalive_returns_current_snapshot_without_changing_scores(self):
+        first = self.communicator()
+        second = self.communicator()
+        try:
+            initial = await self.authenticate(first, self.token)
+            await self.authenticate(second, self.other_token)
+            for _ in range(2):
+                await first.send_json_to({"type": "ping"})
+                reply = await first.receive_json_from()
+                self.assertEqual(reply["type"], "pong")
+                self.assertEqual(reply["race"], initial["race"])
+            self.assertTrue(await second.receive_nothing())
+            await database_sync_to_async(start_race)(race_id=self.race.pk, player=self.player)
+            await first.receive_json_from()
+            await second.receive_json_from()
+            await first.send_json_to({"type": "ping"})
+            reply = await first.receive_json_from()
+            self.assertEqual(reply["race"]["status"], "running")
+            self.assertTrue(all(entry["revision"] == 0 for entry in reply["race"]["participants"]))
+            self.assertTrue(all(entry["wpm"] is None for entry in reply["race"]["participants"]))
+        finally:
+            await first.disconnect()
+            await second.disconnect()
+
+    async def test_keepalive_does_not_bypass_token_revocation(self):
+        socket = self.communicator()
+        try:
+            await self.authenticate(socket, self.token)
+            await database_sync_to_async(lambda: Token.objects.filter(key=self.token).delete())()
+            await socket.send_json_to({"type": "ping"})
+            self.assertEqual((await socket.receive_output())["code"], 4403)
+        finally:
+            await socket.disconnect()
+
     async def test_explicit_token_mode_uses_player_token_instead_of_admin_cookie(self):
         socket = WebsocketCommunicator(
             application, f"/ws/races/{self.race.pk}/?auth=token",
