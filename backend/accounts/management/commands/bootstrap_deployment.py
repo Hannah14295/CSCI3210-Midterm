@@ -43,7 +43,7 @@ class Command(BaseCommand):
 
         if not Paragraph.objects.exists():
             Paragraph.objects.create(
-                title="First practice race",
+                title="Practice race",
                 text=(
                     "The small blue car waited at the starting line. "
                     "When the lights turned green, every driver focused on the road ahead. "

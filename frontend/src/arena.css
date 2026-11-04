@@ -239,11 +239,8 @@
 .race-room .stats-grid strong { display: block; margin-top: 8px; font-size: 24px; }
 .race-room .stats-grid small { font-size: 13px; }
 .race-room .stats-grid .status-value { font-size: 18px; text-transform: capitalize; }
-.race-room .waiting-banner,
-.race-room .finish-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; border-radius: 14px; background: #efe8fb; }
-.race-room .finish-banner { background: #e6f5eb; }
-.race-room .waiting-banner p,
-.race-room .finish-banner p { margin: 6px 0 0; font-size: 13px; }
+.race-room .waiting-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; border-radius: 14px; background: #efe8fb; }
+.race-room .waiting-banner p { margin: 6px 0 0; font-size: 13px; }
 .race-room .typing-panel { margin-top: 20px; }
 .race-room .typing-panel .section-heading { flex-wrap: wrap; font-size: 13px; }
 .race-room .typing-surface { border: 1px solid var(--arena-border); border-radius: 10px; background: #fcfbff; }
@@ -329,7 +326,6 @@
   .arena .room-row > .status-tag { justify-self: start; }
   .arena .room-row > button { justify-self: end; }
   .race-room .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .race-room .waiting-banner,
-  .race-room .finish-banner { flex-direction: column; align-items: stretch; }
+  .race-room .waiting-banner { flex-direction: column; align-items: stretch; }
   .race-room .racer-progress { gap: 8px; }
 }

@@ -115,7 +115,7 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
         <div><span>RACE STATUS</span><strong className="status-value">{race.status === 'finished' ? 'Finished' : finished ? 'Waiting for racers' : livePreview && complete ? 'Saving result…' : race.status}</strong></div>
       </div>
       {race.status === 'waiting' && <div className="waiting-banner"><div><strong>Everyone on the grid?</strong><p>{race.host.id === playerId ? 'Share the race ID, wait for your friends, then start when you’re ready.' : `Waiting for ${race.host.username} to start. Your input will unlock automatically.`}</p></div>{race.host.id === playerId && <button className="button primary" disabled={busy || connection !== 'connected'} onClick={() => void start()}>{busy ? 'Starting…' : 'Start race →'}</button>}</div>}
-      {finished && <div className="finish-banner" role="status"><span className="finish-icon">⚑</span><div><strong>Result saved. Nice run.</strong><p>{own?.wpm?.toFixed(2)} WPM in {own?.elapsed_seconds?.toFixed(2)} seconds. {race.status === 'running' ? `Waiting for ${remaining} ${remaining === 1 ? 'racer' : 'racers'} to finish.` : 'Everyone has finished.'}</p></div></div>}
+      {finished && race.status === 'running' && <div className="waiting-banner" role="status"><div><strong>Your result is saved.</strong><p>Waiting for {remaining} {remaining === 1 ? 'racer' : 'racers'} to finish.</p></div></div>}
       {results && <RaceResultsDialog results={results} raceId={raceId} playerId={playerId} onBack={onBack} />}
       {race.status === 'running' && !race.started_at && <Notice message="This race was manually marked Running without a start time. Create a fresh room through the lobby." />}
       <section className="panel typing-panel">
