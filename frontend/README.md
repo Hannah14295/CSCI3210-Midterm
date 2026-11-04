@@ -20,6 +20,18 @@ checkout; use `npm --prefix frontend ci` on a fresh checkout. Run
 `npm --prefix frontend run build` for strict TypeScript checks and a production
 bundle in `frontend/dist/`.
 
+## Design the frontend
+
+The previous visual theme has been removed. The UI uses browser-default controls
+and normal document flow. Start your CSS in `src/styles.css`; existing component
+class names are kept as hooks for your design. The remaining rules keep forms
+readable, size the canvas, and make the transparent typing input and character
+feedback work. Keep those typing mechanics when changing the layout.
+
+Edit the JSX in `src/App.tsx` and `src/components/` to change the page structure.
+The animated cars are drawn in `src/components/RaceTrack.tsx`, so their appearance
+is controlled there rather than by CSS. Its grayscale palette is a placeholder.
+
 ## Main files: where to change things
 
 | File | Responsibility |
@@ -38,7 +50,7 @@ bundle in `frontend/dist/`.
 | `src/components/RaceTrack.tsx` | Presentational canvas animation of player progress |
 | `src/components/Leaderboard.tsx` | Fetches and displays paginated completed results |
 | `src/components/Notice.tsx` | Reusable accessible error message |
-| `src/styles.css` | Colors, spacing, typography, and responsive layout |
+| `src/styles.css` | Minimal usability and typing mechanics; starting point for your own design |
 | `vite.config.ts` | React tooling and the development proxy to Django |
 
 ## Follow a click through the app
@@ -104,7 +116,7 @@ the user is signed into admin as Hannah while playing as another account.
   characters, and moving backward to edit are blocked. Django also rejects edits
   to previously saved characters. Players finish at the paragraph's length;
   mistakes lower accuracy and WPM rather than preventing completion.
-- Font downloads use Google Fonts, with system fonts as fallback if offline.
+- No external fonts or visual theme are loaded.
 - This proxy applies to the development server, not the built static files.
   Hosted builds use `VITE_BACKEND_URL` for API and secure WebSocket requests.
   The Pages workflow sets the repository asset path with `VITE_BASE_PATH`.

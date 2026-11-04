@@ -1,7 +1,8 @@
 import { memo, useEffect, useRef } from 'react';
 import type { Participant } from '../types';
 
-const colors = ['#d6e84c', '#85c6db', '#efa985', '#c6a9de', '#8ec4a1'];
+// Neutral placeholders; customize the car palette here when designing the track.
+const colors = ['#555', '#777', '#999', '#bbb', '#ddd'];
 export const RaceTrack = memo(function RaceTrack({ participants, playerId }: { participants: Participant[]; playerId: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const entries = useRef(participants);
@@ -46,11 +47,11 @@ export const RaceTrack = memo(function RaceTrack({ participants, playerId }: { p
         const position = reducedMotion || target >= 1 ? target : old + (target - old) * smoothing;
         positions.current.set(entry.id, position);
         const x = 28 + Math.max(0, finish - 68) * position;
-        ctx.fillStyle = '#d8dddf'; ctx.font = '12px system-ui';
+        ctx.fillStyle = '#000'; ctx.font = '12px sans-serif';
         ctx.fillText(`${entry.player.username.slice(0, 18)}${entry.player.id === playerId ? ' (you)' : ''}`, 16, y - 20);
         ctx.fillStyle = colors[index % colors.length];
         ctx.beginPath(); ctx.roundRect(x - 17, y - 8, 35, 15, 4); ctx.fill();
-        ctx.fillStyle = '#1a2229'; ctx.fillRect(x - 4, y - 5, 10, 9);
+        ctx.fillStyle = '#fff'; ctx.fillRect(x - 4, y - 5, 10, 9);
         ctx.fillStyle = '#090e12';
         for (const wheelX of [-11, 10]) for (const wheelY of [-11, 7]) ctx.fillRect(x + wheelX, y + wheelY, 7, 5);
       });
