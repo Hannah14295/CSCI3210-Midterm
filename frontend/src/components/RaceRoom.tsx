@@ -4,7 +4,7 @@ import { describeError, request } from '../api';
 import { raceSchema } from '../types';
 import { useRace } from '../hooks/useRace';
 import { Notice } from './Notice';
-import { RaceTrack } from './RaceTrack';
+import { RaceProgress } from './RaceProgress';
 import { previewTyping } from '../typing';
 
 const Passage = memo(function Passage({
@@ -97,13 +97,13 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
     try { await navigator.clipboard.writeText(String(raceId)); setCopied(true); }
     catch { setActionError(`Share this race ID: ${raceId}`); }
   }
-  return <>
+  return <div className="arena race-room">
     <div className="room-heading"><button className="text-button back" onClick={onBack}>← Race lobby</button><span className={`connection ${connection}`} role="status"><i />{connection === 'connected' ? 'Live connection' : connection}</span></div>
     <div className="page-heading"><div><span className="eyebrow">ROOM #{raceId}</span><h1>{finished ? 'Across the line.' : race?.status === 'running' ? 'Make every key count.' : 'Your starting line.'}</h1><p className="muted">{race ? `Hosted by ${race.host.username} · ${race.participants.length} ${race.participants.length === 1 ? 'racer' : 'racers'}` : 'Connecting to your race…'}</p></div><button className="button subtle" onClick={copy}>{copied ? 'ID copied ✓' : `Copy race ID #${raceId}`}</button></div>
     <Notice message={error || actionError} />
     {connection === 'disconnected' && <button className="button dark" onClick={reconnect}>Reconnect to race</button>}
     {race && <>
-      <RaceTrack participants={displayedParticipants} playerId={playerId} />
+      <RaceProgress participants={displayedParticipants} playerId={playerId} />
       <div className="stats-grid" aria-label="Your race statistics">
         <div><span>{livePreview ? 'WPM · LIVE ESTIMATE' : 'WORDS PER MINUTE'}</span><strong>{(metrics?.wpm || 0).toFixed(1)}<small> WPM</small></strong></div>
         <div><span>ACCURACY</span><strong>{(metrics?.accuracy ?? 100).toFixed(0)}<small>%</small></strong></div>
@@ -178,5 +178,5 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
         </div>
       </section>
     </>}
-  </>;
+  </div>;
 }

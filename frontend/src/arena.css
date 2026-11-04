@@ -1,0 +1,234 @@
+/* Arena design: these rules are scoped to the lobby and race room.
+   Change these variables to experiment with the whole arena palette. */
+.arena {
+  --arena-ink: #493477;
+  --arena-muted: #746889;
+  --arena-pink: #ce0046;
+  --arena-border: #e1daef;
+  --arena-purple: #843b98;
+  max-width: 1000px;
+  margin: 36px auto;
+  color: var(--arena-ink);
+  font-family: Arial, sans-serif;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.arena *,
+.arena *::before,
+.arena *::after {
+  box-sizing: border-box;
+}
+
+/* Page heading and small section labels. */
+.arena .page-heading,
+.arena .section-heading,
+.arena .room-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.arena .page-heading { margin: 0 0 24px; }
+.arena h1 { margin: 6px 0; font-size: clamp(26px, 4vw, 36px); line-height: 1.2; }
+.arena h2 { margin: 8px 0; font-size: 23px; line-height: 1.3; }
+.arena p { margin: 8px 0 20px; }
+.arena .muted,
+.arena .input-help { color: var(--arena-muted); }
+.arena .input-help { font-size: 13px; }
+.arena .eyebrow,
+.arena .section-number {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+}
+.arena .section-number,
+.arena .yellow-dot { color: var(--arena-pink); }
+.arena .live-pill {
+  flex-shrink: 0;
+  border: 1px solid #c5e2d2;
+  border-radius: 24px;
+  background: #f0faf4;
+  padding: 6px 12px;
+  color: #286645;
+  font-size: 12px;
+}
+
+/* Create and join cards. The columns stack on smaller screens. */
+.lobby-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 24px;
+}
+.arena .panel,
+.arena .rooms-section,
+.arena .race-progress {
+  margin: 0;
+  padding: 28px;
+  border: 1px solid var(--arena-border);
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 8px 24px rgb(73 52 119 / 5%);
+  min-width: 0;
+}
+.arena .create-panel,
+.arena .join-panel { background: #fbf9ff; }
+/* Let both forms fill their cards, with the action buttons at the bottom. */
+.lobby-grid > .panel,
+.lobby-grid > .panel > form {
+  display: flex;
+  flex-direction: column;
+}
+.lobby-grid > .panel > form { flex: 1; }
+.lobby-grid > .panel > form > button { margin-top: auto; }
+.arena label { margin: 20px 0 8px; font-size: 13px; font-weight: bold; }
+.arena input,
+.arena select {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #c9bedb;
+  border-radius: 10px;
+  background: white;
+  color: var(--arena-ink);
+  font: inherit;
+  margin: 0 0 16px;
+}
+.arena input:focus-visible,
+.arena select:focus-visible,
+.arena button:focus-visible {
+  outline: 2px solid var(--arena-purple);
+  outline-offset: 3px;
+}
+.arena .passage-preview {
+  padding: 18px;
+  border: 1px solid #ece7f5;
+  border-radius: 12px;
+  background: #faf8fe;
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.arena .passage-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 20px;
+  color: var(--arena-muted);
+  font-size: 11px;
+}
+
+/* Primary actions, secondary actions, and keyboard/disabled states. */
+.arena .button {
+  display: inline-block;
+  padding: 11px 18px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.arena .button.primary { background: var(--arena-purple); color: white; }
+.arena .button.dark { background: var(--arena-ink); color: white; }
+.arena .button.subtle { background: #f9f6ff; border-color: var(--arena-border); color: var(--arena-ink); }
+.arena .button.wide { width: 100%; }
+.arena .button:hover:not(:disabled) { filter: brightness(0.94); }
+.arena button:disabled { opacity: 0.5; cursor: not-allowed; }
+.arena .text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--arena-ink);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.arena .tip {
+  margin-top: 28px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #efe9f9;
+  font-size: 13px;
+}
+.arena .tip > span { font-size: 10px; font-weight: bold; letter-spacing: 1px; }
+.arena .tip p { margin: 8px 0 0; }
+.arena .notice {
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid #ebc6d1;
+  border-radius: 10px;
+  background: #fff4f7;
+  color: #982948;
+}
+
+/* Recent rooms: clear rows with status badges. */
+.arena .rooms-section { margin-top: 24px; }
+.arena .section-heading { margin-bottom: 20px; }
+.arena .rooms-list { display: grid; gap: 10px; }
+.arena .room-row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #eee9f6;
+  border-radius: 12px;
+}
+.arena .room-id { font-size: 14px; font-weight: bold; }
+.arena .room-info { display: grid; overflow-wrap: anywhere; }
+.arena .room-info > span { color: var(--arena-muted); font-size: 12px; }
+.arena .status-tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; text-transform: capitalize; }
+.arena .status-tag.waiting { background: #eee8fb; color: #674091; }
+.arena .status-tag.running { background: #e2f4e8; color: #286645; }
+.arena .status-tag.finished { background: #f0eef3; color: #706580; }
+.arena .empty { padding: 24px 0; color: var(--arena-muted); text-align: center; }
+.arena .rooms-section > .input-help { margin: 20px 0 0; }
+
+/* Inside a race: simple progress bars, statistics, and a focused typing area. */
+.race-room .room-heading { margin-bottom: 24px; font-size: 13px; }
+.race-room .connection { color: var(--arena-muted); }
+.race-room .connection.connected { color: #286645; }
+.race-room .racer-list { display: grid; gap: 16px; padding: 0; list-style: none; }
+.race-room .racer-progress { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr 44px; align-items: center; gap: 16px; font-size: 14px; }
+.race-room .racer-progress > span:first-child { overflow-wrap: anywhere; }
+.race-room progress { width: 100%; height: 12px; accent-color: var(--arena-purple); }
+.race-room .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.race-room .stats-grid > div { padding: 18px; border: 1px solid var(--arena-border); border-radius: 14px; background: white; }
+.race-room .stats-grid > div > span { display: block; color: var(--arena-muted); font-size: 10px; letter-spacing: 1px; }
+.race-room .stats-grid > div > span::after { content: none; }
+.race-room .stats-grid strong { display: block; margin-top: 8px; font-size: 24px; }
+.race-room .stats-grid small { font-size: 13px; }
+.race-room .stats-grid .status-value { font-size: 18px; text-transform: capitalize; }
+.race-room .waiting-banner,
+.race-room .finish-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; border-radius: 14px; background: #efe8fb; }
+.race-room .finish-banner { background: #e6f5eb; }
+.race-room .waiting-banner p,
+.race-room .finish-banner p { margin: 6px 0 0; font-size: 13px; }
+.race-room .typing-panel { margin-top: 20px; }
+.race-room .typing-panel .section-heading { flex-wrap: wrap; font-size: 13px; }
+.race-room .typing-surface { border: 1px solid var(--arena-border); border-radius: 10px; background: #fcfbff; }
+.race-room .typing-passage { padding: 16px; font-size: 19px; line-height: 1.9; }
+
+@media (max-width: 700px) {
+  .site-header nav { gap: 12px; flex-wrap: wrap; }
+  .site-header .nav-item { padding: 10px 20px; }
+  .arena { margin-top: 28px; }
+  .lobby-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .arena .panel,
+  .arena .rooms-section,
+  .arena .race-progress { padding: 20px; }
+  .arena .page-heading { flex-wrap: wrap; }
+  .arena .room-row { grid-template-columns: 44px minmax(0, 1fr); gap: 10px; }
+  .arena .room-row > .status-tag { justify-self: start; }
+  .arena .room-row > button { justify-self: end; }
+  .race-room .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .race-room .waiting-banner,
+  .race-room .finish-banner { flex-direction: column; align-items: stretch; }
+  .race-room .racer-progress { gap: 8px; }
+}

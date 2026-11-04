@@ -25,12 +25,12 @@ bundle in `frontend/dist/`.
 The previous visual theme has been removed. The UI uses browser-default controls
 and normal document flow. Start your CSS in `src/styles.css`; existing component
 class names are kept as hooks for your design. The remaining rules keep forms
-readable, size the canvas, and make the transparent typing input and character
+readable and make the transparent typing input and character
 feedback work. Keep those typing mechanics when changing the layout.
 
 Edit the JSX in `src/App.tsx` and `src/components/` to change the page structure.
-The animated cars are drawn in `src/components/RaceTrack.tsx`, so their appearance
-is controlled there rather than by CSS. Its grayscale palette is a placeholder.
+Racer progress uses ordinary HTML progress bars in `src/components/RaceProgress.tsx`.
+Style `.race-progress`, `.racer-list`, and `.racer-progress` to design that section.
 
 ## Main files: where to change things
 
@@ -47,10 +47,11 @@ is controlled there rather than by CSS. Its grayscale palette is a placeholder.
 | `src/components/AuthForm.tsx` | Login and registration forms |
 | `src/components/Lobby.tsx` | Fetches passages/recent rooms and handles create/join |
 | `src/components/RaceRoom.tsx` | Race controls, input, highlighting, participant stats, and saved result |
-| `src/components/RaceTrack.tsx` | Presentational canvas animation of player progress |
+| `src/components/RaceProgress.tsx` | Racer names, progress bars, and completion percentages |
 | `src/components/Leaderboard.tsx` | Fetches and displays paginated completed results |
 | `src/components/Notice.tsx` | Reusable accessible error message |
 | `src/styles.css` | Minimal usability and typing mechanics; starting point for your own design |
+| `src/arena.css` | Lobby and race-room design; scoped colors, cards, controls, and mobile layout |
 | `vite.config.ts` | React tooling and the development proxy to Django |
 
 ## Follow a click through the app
@@ -64,11 +65,11 @@ is controlled there rather than by CSS. Its grayscale palette is a placeholder.
 7. `useRace` opens `/ws/races/ID/?auth=token`, forwarded to Django by Vite.
 8. After the backend requests authentication, the hook sends the token as a frame.
 9. Django checks the player and membership, then sends a race snapshot.
-10. React renders the waiting room and participant track.
+10. React renders the waiting room and participant progress.
 
 Clicking Start sends another POST. The backend broadcasts the new running state,
-and the hook updates React state. Typing updates local input, highlighting, your
-car, accuracy, progress, and estimated WPM immediately. Regular input is batched
+and the hook updates React state. Typing updates local input, highlighting,
+accuracy, progress, and estimated WPM immediately. Regular input is batched
 at 250ms intervals, with only one update awaiting server acknowledgment. Newer
 keystrokes replace the unsent buffer instead of queuing more work. Completing
 the passage skips the batching delay as soon as any in-flight update is accepted.
@@ -81,9 +82,8 @@ its browser clock and network timing can differ from the final server score.
 - AuthContext contains shared account state, not fast-changing typing input.
 - `useRace` contains live race state; its effect closes connections and cancels
   send timers when unmounted. A reconnect button restores server-saved input.
-- RaceRoom coordinates data and actions; Passage and RaceTrack render their props.
-- Memoization keeps the canvas/passages from unnecessary unrelated rerenders.
-- Canvas uses requestAnimationFrame for motion and respects reduced-motion settings.
+- RaceRoom coordinates data and actions; Passage and RaceProgress render their props.
+- Memoization keeps the progress list and passage from unnecessary unrelated rerenders.
 - Server revisions prevent older updates from moving a displayed player backward.
 - No TypeScript `any` types are used. Zod checks received data at runtime, since
   TypeScript alone cannot validate JSON from a server.

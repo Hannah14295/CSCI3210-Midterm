@@ -89,12 +89,6 @@ td {
   padding: 0.25rem 0.5rem;
 }
 
-/* Canvas sizing is required for the animated race track. */
-.track canvas {
-  display: block;
-  width: 100%;
-}
-
 /* The transparent textarea receives input over the highlighted passage. */
 .typing-surface {
   position: relative;

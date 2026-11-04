@@ -22,7 +22,7 @@ export function Lobby({ onEnter }: { onEnter: (id: number) => void }) {
       request('paragraphs/', pageSchema(paragraphSchema), token, { signal: controller.signal }),
       request('races/', pageSchema(raceSchema), token, { signal: controller.signal }),
     ]).then(([passages, rooms]) => {
-      setParagraphs(passages.results); setRaces(rooms.results);
+      setParagraphs(passages.results); setRaces(rooms.results.slice(0, 10));
       setSelection(previous => previous || String(passages.results[0]?.id || ''));
     }).catch(problem => { if (!controller.signal.aborted) setError(describeError(problem)); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -39,8 +39,8 @@ export function Lobby({ onEnter }: { onEnter: (id: number) => void }) {
     else void act(async () => { await request(`races/${race.id}/join/`, participantSchema, token, { method: 'POST' }); return race.id; });
   }
   const passage = paragraphs.find(item => item.id === Number(selection));
-  return <>
-    <div className="page-heading"><div><span className="eyebrow">THE STARTING GRID</span><h1>Ready when you are<span className="yellow-dot">.</span></h1><p className="muted">Create your own room, or pull up alongside another player.</p></div><span className="live-pill"><i /> Multiplayer</span></div>
+  return <div className="arena lobby">
+    <div className="page-heading"><div><h1>Ready to play?</h1><p className="muted">Choose your own room or join another player's room.</p></div></div>
     <Notice message={error} />
     <div className="lobby-grid">
       <section className="panel create-panel"><span className="section-number">01 / CREATE</span><h2>Set the pace.</h2><p className="muted">Choose a passage. You’ll be the host and the first racer.</p>
@@ -48,7 +48,7 @@ export function Lobby({ onEnter }: { onEnter: (id: number) => void }) {
           <label htmlFor="passage-select">Typing passage</label>
           <select id="passage-select" value={selection} required disabled={loading || busy || !paragraphs.length} onChange={e => setSelection(e.target.value)}>{paragraphs.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
           <div className="passage-preview">{loading ? 'Loading passages…' : passage?.text || 'No passages yet. Add one through Django admin.'}</div>
-          <div className="passage-meta"><span>{passage ? Array.from(passage.text).length : 0} characters</span><span>Accuracy first. Speed follows.</span></div>
+          <div className="passage-meta"><span>{passage ? Array.from(passage.text).length : 0} characters</span></div>
           <button className="button primary wide" disabled={loading || busy || !selection}>{busy ? 'Please wait…' : 'Create a race →'}</button>
         </form>
       </section>
@@ -59,16 +59,14 @@ export function Lobby({ onEnter }: { onEnter: (id: number) => void }) {
             if (!race.participants.some(entry => entry.player.id === user?.id)) await request(`races/${race.id}/join/`, participantSchema, token, { method: 'POST' });
             return race.id;
           });
-        }}><label htmlFor="join-id">Race ID</label><input id="join-id" type="number" min="1" step="1" placeholder="e.g. 12" required value={joinId} onChange={e => setJoinId(e.target.value)} /><button className="button dark wide" disabled={busy}>Join room →</button></form>
-        <div className="tip"><span>GOOD TO KNOW</span><p>The host starts the race when everyone is ready. Everyone types the same passage.</p></div>
+        }}><label htmlFor="join-id">Race ID</label><input id="join-id" type="number" min="1" step="1" placeholder="e.g. 12" required value={joinId} onChange={e => setJoinId(e.target.value)} /><button className="button primary wide" disabled={busy}>Join room →</button></form>
       </section>
     </div>
-    <section className="rooms-section"><div className="section-heading"><div><span className="eyebrow">FIND YOUR COMPETITION</span><h2>Recent rooms</h2></div><button className="button subtle" disabled={loading || busy} onClick={() => setRefresh(value => value + 1)}>↻ Refresh</button></div>
+    <section className="rooms-section"><div className="section-heading"><div><h2>Last 10 rooms</h2></div><button className="button subtle" disabled={loading || busy} onClick={() => setRefresh(value => value + 1)}>↻ Refresh</button></div>
       {loading ? <p className="muted" role="status">Loading rooms…</p> : !races.length ? <div className="empty">The track is quiet. Create the first race.</div> : <div className="rooms-list">{races.map(race => {
         const joined = race.participants.some(entry => entry.player.id === user?.id);
         return <div className="room-row" key={race.id}><span className="room-id">#{race.id}</span><div className="room-info"><strong>{race.host.username}’s race</strong><span>{race.participants.length} {race.participants.length === 1 ? 'racer' : 'racers'}</span></div><span className={`status-tag ${race.status}`}>{race.status}</span><button className="button subtle" disabled={busy || (!joined && race.status !== 'waiting')} onClick={() => enter(race)}>{joined ? 'Open room →' : race.status === 'waiting' ? 'Join →' : 'Closed'}</button></div>;
       })}</div>}
-      <p className="input-help">Showing the 20 most recent rooms. Use a race ID to open an older room.</p>
     </section>
-  </>;
+  </div>;
 }
