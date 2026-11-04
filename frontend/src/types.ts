@@ -7,14 +7,14 @@ export const metricsSchema = z.object({
   progress: z.number(), accuracy: z.number(), complete: z.boolean(), wpm: z.number(),
 });
 export const participantSchema = z.object({
-  id: z.number(), player: userSchema, joined_at: z.string(), revision: z.number(),
+  id: z.number(), player: userSchema, joined_at: z.string(), revision: z.number(), typing_started_at: z.string().nullable(),
   metrics: metricsSchema, finished_at: z.string().nullable(),
   elapsed_seconds: decimalSchema.nullable(), wpm: decimalSchema.nullable(), accuracy: decimalSchema.nullable(),
 });
 export const raceSchema = z.object({
   id: z.number(), paragraph: z.number(), paragraph_text: z.string(), host: userSchema,
   status: z.enum(['waiting', 'running', 'finished']), created_at: z.string(),
-  started_at: z.string().nullable(), participants: z.array(participantSchema),
+  started_at: z.string().nullable(), server_time: z.string(), participants: z.array(participantSchema),
 });
 export const paragraphSchema = z.object({ id: z.number(), title: z.string(), text: z.string() });
 export const resultSchema = z.object({
@@ -33,6 +33,7 @@ export const socketEventSchema = z.discriminatedUnion('type', [
   metricsSchema.extend({
     type: z.literal('progress.updated'), race_id: z.number(), player: userSchema, revision: z.number(),
     finished_at: z.string().nullable(), elapsed_seconds: z.number(),
+    typing_started_at: z.string().nullable(),
   }),
   z.object({ type: z.literal('error'), detail: z.unknown(), status: z.number().optional() }),
 ]);

@@ -247,6 +247,13 @@
 .race-room .typing-surface { border: 1px solid var(--arena-border); border-radius: 10px; background: #fcfbff; }
 .race-room .typing-passage { padding: 16px; font-size: 19px; line-height: 1.9; }
 
+/* Shared countdown; player scoring begins with their first typed character. */
+.race-countdown { margin: 20px 0; padding: 20px; border: 1px solid #c9bedb; border-radius: 16px; background: #efe8fb; text-align: center; }
+.race-countdown strong { display: block; font-size: 64px; line-height: 1.1; color: #843b98; }
+.race-countdown span { display: block; margin-top: 10px; font-size: 14px; }
+.race-countdown.go { background: #dbeafe; border-color: #bfdbfe; }
+.race-countdown.go strong { color: #1d4ed8; }
+
 /* Finish celebrations sit above the results dialog without blocking controls. */
 .finish-confetti {
   display: none;

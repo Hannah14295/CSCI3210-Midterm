@@ -11,14 +11,28 @@ export function useRace(raceId: number, token: string, playerId: number) {
   const [race, setRace] = useState<Race | null>(null);
   const [text, setText] = useState('');
   const [typedAt, setTypedAt] = useState(0);
+  const [typingStartedAt, setTypingStartedAt] = useState<number | null>(null);
+  const [clockOffset, setClockOffset] = useState(0);
+  const typingStartRef = useRef<number | null>(null);
+  const clockOffsetRef = useRef(0);
   const [connection, setConnection] = useState<ConnectionState>('connecting');
   const [error, setError] = useState('');
   const senderRef = useRef<ReturnType<typeof createTypingSender> | null>(null);
   const connectionRef = useRef<ReturnType<typeof createRaceConnection> | null>(null);
   const draft = useRef('');
   const applyRace = useCallback((incoming: Race) => {
+    const serverNow = Date.parse(incoming.server_time);
+    if (Number.isFinite(serverNow)) {
+      clockOffsetRef.current = serverNow - Date.now();
+      setClockOffset(clockOffsetRef.current);
+    }
+    const own = incoming.participants.find(entry => entry.player.id === playerId);
+    if (own?.typing_started_at) {
+      typingStartRef.current = Date.parse(own.typing_started_at) - clockOffsetRef.current;
+      setTypingStartedAt(typingStartRef.current);
+    }
     setRace(previous => mergeRaceSnapshot(previous, incoming));
-  }, []);
+  }, [playerId]);
 
   useEffect(() => {
     const transport = createRaceConnection({
@@ -67,6 +81,10 @@ export function useRace(raceId: number, token: string, playerId: number) {
           setText(restored);
           setTypedAt(previous => previous && restored === previousDraft ? previous : Date.now());
           applyRace(data.race);
+          if (!own?.typing_started_at && !restored) {
+            typingStartRef.current = null;
+            setTypingStartedAt(null);
+          }
           transport.connected();
           if (data.race.status === 'finished' || own?.finished_at) sender?.stop();
           else if (restored !== data.your_text) {
@@ -85,6 +103,7 @@ export function useRace(raceId: number, token: string, playerId: number) {
           setRace(previous => previous ? ({ ...previous, participants: previous.participants.map(entry =>
             entry.player.id !== data.player.id || entry.revision > data.revision ? entry : {
               ...entry, revision: data.revision, metrics: data,
+              typing_started_at: data.typing_started_at,
               wpm: data.finished_at ? data.wpm : null,
               accuracy: data.finished_at ? data.accuracy : null,
               finished_at: data.finished_at,
@@ -92,6 +111,10 @@ export function useRace(raceId: number, token: string, playerId: number) {
             },
           ) }) : previous);
           if (data.player.id === playerId) {
+            if (data.typing_started_at) {
+              typingStartRef.current = Date.parse(data.typing_started_at) - clockOffsetRef.current;
+              setTypingStartedAt(typingStartRef.current);
+            }
             if (data.finished_at) sender?.stop();
             else sender?.acknowledge(data.typed_characters);
             setError('');
@@ -116,10 +139,15 @@ export function useRace(raceId: number, token: string, playerId: number) {
   }, [raceId, token, playerId, applyRace]);
 
   const updateText = useCallback((value: string, complete = false) => {
+    const firstKey = value.length > 0 && typingStartRef.current === null;
+    if (firstKey) {
+      typingStartRef.current = Date.now();
+      setTypingStartedAt(typingStartRef.current);
+    }
     draft.current = value;
     setText(value); setTypedAt(Date.now());
-    senderRef.current?.queue(value, complete);
+    senderRef.current?.queue(value, complete, firstKey);
   }, []);
-  return { race, text, typedAt, updateText, applyRace, connection, error,
+  return { race, text, typedAt, typingStartedAt, clockOffset, updateText, applyRace, connection, error,
     reconnect: () => connectionRef.current?.reconnect() };
 }

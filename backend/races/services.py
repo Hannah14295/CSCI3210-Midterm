@@ -1,6 +1,8 @@
 """Race rules shared by API actions and real-time connections."""
 from functools import partial
 from decimal import Decimal
+from datetime import timedelta
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -43,7 +45,7 @@ def start_race(*, race_id, player):
     if race.status != Race.Status.WAITING:
         raise RaceConflict("This race has already started or finished.")
     race.status = Race.Status.RUNNING
-    race.started_at = timezone.now()
+    race.started_at = timezone.now() + timedelta(seconds=settings.RACE_COUNTDOWN_SECONDS)
     race.race_text = race.paragraph.text
     race.save(update_fields=["status", "started_at", "race_text"])
     transaction.on_commit(partial(broadcast_race_state, race.pk))
@@ -67,10 +69,17 @@ def update_typing(*, race_id, player_id, text):
     if not text.startswith(participant.typed_text):
         raise ValidationError("Type forward only. Previously entered characters cannot be removed or changed.")
     now = timezone.now()
-    elapsed = Decimal(str((now - race.started_at).total_seconds()))
-    if elapsed <= 0:
-        raise RaceConflict("The race start time must be in the past.")
+    if now < race.started_at:
+        raise RaceConflict("Wait for the countdown to reach Go before typing.")
+    if text and participant.typing_started_at is None:
+        participant.typing_started_at = now
+    elapsed = Decimal(str((now - participant.typing_started_at).total_seconds())) if participant.typing_started_at else Decimal(0)
+    if elapsed < 0:
+        raise RaceConflict("The player's typing start time must be in the past.")
     metrics = typing_metrics(race.race_text, text)
+    # A whole passage submitted in its very first packet still needs a positive duration.
+    if metrics["complete"]:
+        elapsed = max(elapsed, Decimal("0.001"))
     difference = text_difference(participant.typed_text, text)
     participant.typed_text = text
     participant.revision += 1
@@ -80,12 +89,13 @@ def update_typing(*, race_id, player_id, text):
         participant.elapsed_seconds = elapsed
         participant.wpm = current_wpm
         participant.accuracy = Decimal(str(metrics["accuracy"]))
-    participant.save(update_fields=["typed_text", "revision", "finished_at", "elapsed_seconds", "wpm", "accuracy"])
+    participant.save(update_fields=["typed_text", "revision", "typing_started_at", "finished_at", "elapsed_seconds", "wpm", "accuracy"])
     payload = {
         "type": "progress.updated",
         "race_id": race.pk,
         "player": {"id": player_id, "username": participant.player.username},
         "revision": participant.revision,
+        "typing_started_at": participant.typing_started_at.isoformat() if participant.typing_started_at else None,
         "difference": difference,
         **metrics,
         "wpm": float(current_wpm),

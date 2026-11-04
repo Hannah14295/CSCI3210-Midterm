@@ -1,7 +1,7 @@
 from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
-from django.test import Client, TransactionTestCase
+from django.test import Client, TransactionTestCase, override_settings
 from rest_framework.authtoken.models import Token
 
 from config.asgi import application
@@ -9,6 +9,7 @@ from .models import Paragraph, Race, RaceParticipant
 from .services import start_race
 
 
+@override_settings(RACE_COUNTDOWN_SECONDS=0)
 class RaceWebSocketTests(TransactionTestCase):
     def setUp(self):
         User = get_user_model()
@@ -85,7 +86,8 @@ class RaceWebSocketTests(TransactionTestCase):
                 await first.send_json_to({"type": "ping"})
                 reply = await first.receive_json_from()
                 self.assertEqual(reply["type"], "pong")
-                self.assertEqual(reply["race"], initial["race"])
+                self.assertEqual(reply["race"]["status"], initial["race"]["status"])
+                self.assertEqual(reply["race"]["participants"], initial["race"]["participants"])
             self.assertTrue(await second.receive_nothing())
             await database_sync_to_async(start_race)(race_id=self.race.pk, player=self.player)
             await first.receive_json_from()
@@ -307,7 +309,7 @@ class RaceWebSocketTests(TransactionTestCase):
             restored = await self.authenticate(reconnect, self.token)
             self.assertEqual(restored["race"]["participants"][0]["wpm"], own_entry["wpm"])
             self.assertEqual(restored["race"]["status"], "finished")
-            self.assertEqual(restored["race"], final["race"])
+            self.assertEqual(restored["race"]["participants"], final["race"]["participants"])
         finally:
             await socket.disconnect()
             await opponent.disconnect()

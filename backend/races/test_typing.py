@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .models import Paragraph, Race, RaceParticipant
@@ -31,6 +31,7 @@ class TextComparisonTests(SimpleTestCase):
             self.assertEqual(rebuilt, after)
 
 
+@override_settings(RACE_COUNTDOWN_SECONDS=0)
 class TypingServiceTests(TestCase):
     def setUp(self):
         self.player = get_user_model().objects.create_user(username="typist")

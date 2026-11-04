@@ -3,7 +3,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -22,6 +22,7 @@ class WPMTests(SimpleTestCase):
         self.assertEqual(calculate_wpm(10, 0), Decimal("0.00"))
 
 
+@override_settings(RACE_COUNTDOWN_SECONDS=0)
 class SavedResultTests(TestCase):
     def setUp(self):
         User = get_user_model()
@@ -35,6 +36,7 @@ class SavedResultTests(TestCase):
         self.finish_time = timezone.now()
         self.start_time = self.finish_time - timedelta(seconds=60)
         Race.objects.filter(pk=self.race.pk).update(started_at=self.start_time)
+        RaceParticipant.objects.filter(race=self.race).update(typing_started_at=self.start_time)
 
     def submit(self, text, player=None):
         with patch("races.services.timezone.now", return_value=self.finish_time):
@@ -86,7 +88,7 @@ class SavedResultTests(TestCase):
 
     def test_three_players_wait_for_the_last_finish_and_keep_individual_times(self):
         third = get_user_model().objects.create_user(username="thirdfinisher")
-        RaceParticipant.objects.create(race=self.race, player=third)
+        RaceParticipant.objects.create(race=self.race, player=third, typing_started_at=self.start_time)
         self.submit(self.paragraph.text)
         self.finish_time += timedelta(seconds=10)
         self.submit("x" + self.paragraph.text[1:], player=self.other)

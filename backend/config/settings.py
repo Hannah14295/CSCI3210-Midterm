@@ -95,6 +95,7 @@ TEMPLATES = [
 ]
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
+RACE_COUNTDOWN_SECONDS = 3
 
 redis_url = os.environ.get("REDIS_URL")
 if redis_url:

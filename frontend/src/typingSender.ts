@@ -1,6 +1,6 @@
 /** Keep one update awaiting confirmation and combine newer input into one buffer. */
 export function createTypingSender(send: (text: string) => void, intervalMs = 250) {
-  let pending: { text: string; complete: boolean } | null = null;
+  let pending: { text: string; urgent: boolean } | null = null;
   let inFlight: number | null = null;
   let lastSentAt: number | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -23,7 +23,7 @@ export function createTypingSender(send: (text: string) => void, intervalMs = 25
 
   function schedule() {
     if (stopped || inFlight !== null || !pending) return;
-    if (pending.complete) { flush(); return; }
+    if (pending.urgent) { flush(); return; }
     if (timer !== null) return;
     const wait = lastSentAt === null ? intervalMs : Math.max(0, intervalMs - (Date.now() - lastSentAt));
     if (wait === 0) flush();
@@ -31,9 +31,9 @@ export function createTypingSender(send: (text: string) => void, intervalMs = 25
   }
 
   return {
-    queue(text: string, complete = false) {
+    queue(text: string, complete = false, firstKey = false) {
       if (stopped) return;
-      pending = { text, complete };
+      pending = { text, urgent: complete || firstKey };
       schedule();
     },
     acknowledge(typedCharacters: number) {

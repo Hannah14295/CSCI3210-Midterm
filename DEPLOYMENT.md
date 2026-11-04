@@ -115,7 +115,10 @@ Open https://hannah14295.github.io/CSCI3210-Midterm/ after the workflow succeeds
 1. Register a regular player (or log in with the hosted admin account).
 2. Create a race and note its ID.
 3. In another tab/browser, use a different player account to join that ID.
-4. Start as the host and confirm both screens unlock.
+4. Start as the host and confirm both screens show 3, 2, 1, Go before typing unlocks.
+   Each player's scoring clock starts on their first non-empty typing update,
+   not when the host starts the countdown. Wait briefly before one player types
+   and confirm their idle time is excluded from the saved duration.
 5. Type with a mistake and confirm it stays red and Backspace is blocked.
 6. Finish in one screen: that player's result is saved while the other player
    can keep typing. After everyone finishes, every connected race screen should

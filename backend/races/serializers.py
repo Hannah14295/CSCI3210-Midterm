@@ -24,7 +24,7 @@ class RaceParticipantSerializer(serializers.ModelSerializer):
         race = participant.race
         metrics = typing_metrics(race.race_text, participant.typed_text)
         end = participant.finished_at or timezone.now()
-        elapsed = (end - race.started_at).total_seconds() if race.started_at else 0
+        elapsed = (end - participant.typing_started_at).total_seconds() if participant.typing_started_at else 0
         metrics["wpm"] = float(
             participant.wpm if participant.wpm is not None
             else calculate_wpm(metrics["correct_characters"], elapsed)
@@ -33,7 +33,7 @@ class RaceParticipantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RaceParticipant
-        fields = ["id", "player", "joined_at", "revision", "metrics", "finished_at", "elapsed_seconds", "wpm", "accuracy"]
+        fields = ["id", "player", "joined_at", "revision", "typing_started_at", "metrics", "finished_at", "elapsed_seconds", "wpm", "accuracy"]
         read_only_fields = fields
 
 
@@ -41,14 +41,18 @@ class RaceSerializer(serializers.ModelSerializer):
     host = UserSerializer(read_only=True)
     participants = RaceParticipantSerializer(many=True, read_only=True)
     paragraph_text = serializers.SerializerMethodField()
+    server_time = serializers.SerializerMethodField()
+
+    def get_server_time(self, race):
+        return timezone.now().isoformat()
 
     def get_paragraph_text(self, race):
         return race.race_text or race.paragraph.text
 
     class Meta:
         model = Race
-        fields = ["id", "paragraph", "paragraph_text", "host", "status", "created_at", "started_at", "participants"]
-        read_only_fields = ["id", "paragraph_text", "host", "status", "created_at", "started_at", "participants"]
+        fields = ["id", "paragraph", "paragraph_text", "host", "status", "created_at", "started_at", "server_time", "participants"]
+        read_only_fields = ["id", "paragraph_text", "host", "status", "created_at", "started_at", "server_time", "participants"]
 
 
 class LeaderboardSerializer(serializers.ModelSerializer):

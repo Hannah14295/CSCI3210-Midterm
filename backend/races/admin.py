@@ -23,4 +23,4 @@ class RaceParticipantAdmin(admin.ModelAdmin):
     list_display = ["id", "race", "player", "joined_at", "finished_at", "wpm", "accuracy"]
     list_select_related = ["race", "player"]
     search_fields = ["player__username"]
-    readonly_fields = ["joined_at", "typed_text", "revision", "finished_at", "elapsed_seconds", "wpm", "accuracy"]
+    readonly_fields = ["joined_at", "typed_text", "revision", "typing_started_at", "finished_at", "elapsed_seconds", "wpm", "accuracy"]
