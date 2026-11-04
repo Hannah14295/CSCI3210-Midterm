@@ -3,6 +3,7 @@ import asyncio
 import json
 from collections import deque
 from time import monotonic
+from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -25,7 +26,8 @@ class RaceConsumer(AsyncJsonWebsocketConsumer):
         self.message_times = deque()
         await self.accept()
         user = self.scope.get("user")
-        if user and user.is_authenticated:
+        token_mode = parse_qs(self.scope.get("query_string", b"").decode()).get("auth") == ["token"]
+        if user and user.is_authenticated and not token_mode:
             self.player_id = user.pk
             await self.enter_room()
         else:

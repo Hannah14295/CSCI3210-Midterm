@@ -3,8 +3,44 @@
 This project currently has a Django backend with paragraph and race models, an admin
 page for managing them, a read-only paragraph REST API, and player registration,
 login, and current-user APIs. Live typing, saved WPM results, and a historical
-leaderboard are available through a developer test page. The React game frontend
-comes in a later milestone.
+leaderboard are available through a developer test page and the React/TypeScript
+game frontend in `frontend/`.
+
+## Run the game frontend
+
+Keep two PowerShell terminals open in the repository root:
+
+```powershell
+# Terminal 1: Django backend
+.\.venv\Scripts\python.exe backend\manage.py runserver
+```
+
+```powershell
+# Terminal 2: React frontend
+npm --prefix frontend run dev
+```
+
+Open http://127.0.0.1:5173/. Log in with your existing account, or register a regular
+player account. Pick a passage, create a race, share its ID, and start when the
+participants have joined. The host can also run a solo practice race. Finish
+the passage exactly to save a result, then open Leaderboard in the navigation.
+
+The game frontend is separate from http://127.0.0.1:8000/admin/. It replaces the
+manual API forms with user-facing buttons and forms. For two different players,
+open another tab/browser and log in as a different account; tokens are scoped
+to each tab's sessionStorage. Some duplicated tabs inherit the original tab's
+session storage, so sign out in the duplicate before logging in as another user.
+
+Dependencies are already installed locally. On a new checkout run
+`npm --prefix frontend ci` before starting. Build/type-check with:
+
+```powershell
+npm --prefix frontend run build
+```
+
+See `frontend/README.md` for the frontend code map and request flow. This is a
+local development setup; serving the production build with Django and deploying
+it require additional hosting configuration.
 
 ## Run the project you already have
 
@@ -251,7 +287,8 @@ Run all current tests:
 
 ## Next milestone
 
-Build the React/TypeScript frontend and connect it to these backend features.
+Review the working game against the assignment, improve race timeout/disconnect
+handling, and prepare the project for submission or deployment as needed.
 
 ## Milestone 5: Race APIs
 

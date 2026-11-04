@@ -75,6 +75,18 @@ class RaceWebSocketTests(TransactionTestCase):
         finally:
             await socket.disconnect()
 
+    async def test_explicit_token_mode_uses_player_token_instead_of_admin_cookie(self):
+        socket = WebsocketCommunicator(
+            application, f"/ws/races/{self.race.pk}/?auth=token",
+            headers=[(b"origin", b"http://127.0.0.1:5173"), (b"cookie", self.cookie)],
+        )
+        try:
+            connected = await self.authenticate(socket, self.other_token)
+            self.assertEqual(connected["player"]["id"], self.other.pk)
+            self.assertNotEqual(connected["player"]["id"], self.player.pk)
+        finally:
+            await socket.disconnect()
+
     async def test_nonparticipant_cannot_enter_room(self):
         socket = self.communicator()
         try:
