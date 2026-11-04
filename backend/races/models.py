@@ -46,6 +46,7 @@ class Race(models.Model):
         choices=Status.choices,
         default=Status.WAITING,
     )
+    started_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

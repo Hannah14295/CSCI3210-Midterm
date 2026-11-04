@@ -64,6 +64,8 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        # Serialize SQLite write transactions so join/start cannot interleave.
+        "OPTIONS": {"transaction_mode": "IMMEDIATE", "timeout": 10},
     }
 }
 

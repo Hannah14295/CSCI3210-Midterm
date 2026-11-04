@@ -250,7 +250,91 @@ Run all current tests:
 
 ## Next milestone
 
-Add authenticated create/join/start race APIs before introducing WebSockets.
+Add live typing updates, progress validation, scoring, and leaderboard APIs.
+
+## Milestone 5: Race APIs
+
+All race endpoints require a token or a logged-in admin session. These lobbies
+are discoverable by all authenticated players; they are not private rooms.
+
+| Method and URL | Meaning | Input |
+| --- | --- | --- |
+| GET `/api/races/` | List races (paginated) | None |
+| POST `/api/races/` | Create a waiting race and enter its host | `{"paragraph": 1}` |
+| GET `/api/races/{id}/` | Read one race and its participants | None |
+| POST `/api/races/{id}/join/` | Enter as the current player | None |
+| POST `/api/races/{id}/start/` | Start as the host | None |
+
+Replace `{id}` with an actual race ID. The backend uses the authenticated user
+for host/player identity. Submitted host, player, status, and start-time values
+cannot override that identity or bypass the action rules. General race editing
+and deletion are not exposed through this API.
+
+New API-created races automatically include their host as a participant. Existing
+admin-created races are unchanged; enter the host using the join endpoint if
+they will compete. Repeating join while waiting returns the existing entry
+(200 rather than the initial 201). Once running or finished, join returns 409.
+Only the host can start (403 otherwise); the race must be waiting (409 otherwise).
+Start records a server-generated `started_at` and changes status to Running. It
+does not yet initiate real-time messages, a countdown, or scoring. Repeating
+start cannot reset the timestamp. Missing races return 404, invalid paragraphs
+400, missing/invalid token authentication 401, and unsupported methods 405.
+
+Try it in the browser while signed into the admin in that same browser:
+
+1. Open http://127.0.0.1:8000/api/races/.
+2. In the POST form, select a paragraph and click POST. The response's `id` is
+   your new race ID. You should also see yourself in `participants`.
+3. Open `/api/races/YOUR_ID/join/` and use its POST button. If you are the host,
+   this returns your existing entry. Opening this address initially sends GET,
+   so "Method GET not allowed" is expected before you submit POST.
+4. Open `/api/races/YOUR_ID/start/` and click POST. The response should show
+   `"status": "running"` and a non-null `started_at`.
+5. Try POST again: expect 409, because the race is already started.
+
+Registering/logging in through the token API does not create a browser session.
+To try another regular player's token from PowerShell, use the login example
+above and pass its `$authHeaders` with each request. For instance:
+
+```powershell
+# Run after creating $authHeaders, before removing those variables.
+$raceBody = @{ paragraph = 1 } | ConvertTo-Json
+$newRace = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/api/races/' -Headers $authHeaders -ContentType 'application/json' -Body $raceBody
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/races/$($newRace.id)/join/" -Headers $authHeaders
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/races/$($newRace.id)/start/" -Headers $authHeaders
+```
+
+### Follow a create request
+
+The future React button will send HTTP just like the POST form does. A request
+has a method (POST), URL (`/api/races/`), headers (such as Authorization and
+Content-Type), and optionally a body (`{"paragraph": 1}`).
+
+1. `config/urls.py` passes `/api/` requests to the races URLs.
+2. `races/urls.py` uses the DRF router to select the RaceViewSet create action.
+3. Authentication identifies `request.user`; permission checking rejects guests.
+4. `RaceSerializer` checks the paragraph exists and selects permitted input fields.
+5. `RaceViewSet.perform_create` calls `services.create_race` using `request.user`.
+6. The service saves the race and participant together in a transaction. If
+   either operation fails, neither save is committed.
+7. The serializer converts the result into response data; DRF renders JSON for
+   API clients (or its HTML developer page for a browser).
+8. HTTP status 201 tells the caller creation succeeded. React will use that
+   response to display the new lobby.
+
+`races/services.py` contains create/join/start rules. Join and start use a
+transaction and lock the race row on databases supporting row locks. SQLite
+does not support those row locks; its IMMEDIATE transaction option in settings
+serializes write transactions instead. This small local project uses SQLite;
+multi-worker production operation will need a deployment/database review.
+
+The admin remains a trusted manual management interface; directly editing its
+status field bypasses the API action rules and does not run the start service.
+Use the API start action to create a consistent running race and start timestamp.
+
+Migration `0004_race_started_at.py` adds the nullable start timestamp. Older races
+retain their existing state and have no start timestamp until started through
+the API from Waiting.
 
 Useful official references:
 
