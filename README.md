@@ -1,8 +1,9 @@
 # TypeRacer midterm: backend learning milestones
 
 This project currently has a Django backend with paragraph and race models, an admin
-page for managing them, and a read-only paragraph REST API. Multiplayer, player
-registration/login, scores, and the React frontend come in later milestones.
+page for managing them, a read-only paragraph REST API, and player registration,
+login, and current-user APIs. Multiplayer, scores, and the React frontend come
+in later milestones.
 
 ## Run the project you already have
 
@@ -86,8 +87,9 @@ The text above is shortened just for this example.
 
 Paragraphs can be read without signing in. The public API rejects creation,
 editing, and deletion; paragraph writes go through the staff-only admin page.
-Other future API views default to requiring authentication in settings. Player
-Token/JWT authentication still needs to be implemented in a later milestone.
+Other API views default to requiring authentication in settings. Token
+authentication is configured for player requests; session authentication also
+supports the browsable API when you are logged in through the admin.
 
 ## Database changes
 
@@ -170,10 +172,85 @@ paragraph and host alongside each race to avoid separate database queries per ro
 `backend/races/migrations/0002_race.py` records the table creation. It has already
 been applied locally using `migrate`. No race API endpoints exist yet.
 
+## Milestone 3: Participants
+
+`RaceParticipant` connects one user (`player`) to one race (`race`) and records
+`joined_at`. Its database constraint prevents the same player entering the same
+race twice. Open http://127.0.0.1:8000/admin/races/raceparticipant/ to add an entry.
+Hosts are not automatically entered as competitors yet.
+
+## Milestone 4: Player authentication
+
+| Method and URL | Input | Result |
+| --- | --- | --- |
+| POST `/api/auth/register/` | username, password | 201: user (id, username) and token |
+| POST `/api/auth/login/` | username, password | 200: user (id, username) and token |
+| GET `/api/auth/me/` | Authorization header | 200: current user's id and username |
+
+Register and login accept JSON or form data. Validation errors, including invalid
+login credentials, return 400. Missing or invalid tokens on protected endpoints
+return 401. Register and login share a per-IP limit of 30 requests per minute
+using Django's local cache; exceeding it returns 429. A shared cache will be
+needed if deployed with multiple workers.
+
+For a browser demonstration, open http://127.0.0.1:8000/api/auth/register/ and use
+the POST form near the bottom to create a new practice account. The top may say
+"Method GET not allowed" (405): registration accepts POST because it creates
+data, whereas entering an address in the browser sends GET. Use the HTML form
+tab if available. Then try the login POST form at
+http://127.0.0.1:8000/api/auth/login/ using those same credentials.
+
+Both responses include a token. Treat it like a password. Receiving one does not
+automatically attach it to later browser requests or sign you into Django admin.
+New registered players cannot enter the admin. Your existing admin account can
+also log in through this API without registering again.
+
+To see token authentication work, run this in a second PowerShell terminal while
+the server is running. Enter a registered username and password at the prompt:
+
+```powershell
+$playerCredentials = Get-Credential -Message 'Enter your game account username and password'
+$loginBody = @{
+    username = $playerCredentials.UserName
+    password = $playerCredentials.GetNetworkCredential().Password
+} | ConvertTo-Json
+$loginResult = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/api/auth/login/' -ContentType 'application/json' -Body $loginBody
+$authHeaders = @{ Authorization = "Token $($loginResult.token)" }
+Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/auth/me/' -Headers $authHeaders
+Remove-Variable playerCredentials,loginBody,loginResult,authHeaders
+```
+
+The last request should show your id and username. It doesn't send a username
+to choose an account: the backend identifies you from the token. In the browser,
+`me/` can instead identify your admin session if you are already signed in there.
+
+The new `accounts` app keeps account features separate from race features:
+
+- `accounts/urls.py` maps the three endpoint addresses to views.
+- `accounts/serializers.py` validates registration input, checks Django's password
+  rules, hashes passwords via `create_user`, and limits user output to id/username.
+- `accounts/views.py` saves an account and token together in a transaction,
+  checks login credentials through Django, and returns `request.user` for `me/`.
+- `config/settings.py` enables DRF's existing token app and authentication classes.
+- `config/urls.py` includes the accounts URLs under `/api/auth/`.
+
+Running `migrate` created DRF's token tables using migrations supplied by that
+library. We reused Django's existing User model, so no new account model or
+project migration was needed for this milestone.
+
+These are DRF's basic reusable tokens: one per user, no automatic expiry, and
+login reuses the existing token. Logout/revocation is not implemented yet. Use
+HTTPS when deploying so passwords and tokens are encrypted in transit.
+
+Run all current tests:
+
+```powershell
+.\.venv\Scripts\python.exe backend\manage.py test accounts races
+```
+
 ## Next milestone
 
-Add the `RaceParticipant` model to connect players to races. After that, add player
-authentication and create/join/start race APIs before introducing WebSockets.
+Add authenticated create/join/start race APIs before introducing WebSockets.
 
 Useful official references:
 
