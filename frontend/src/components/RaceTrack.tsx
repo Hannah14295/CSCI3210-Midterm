@@ -24,8 +24,12 @@ export const RaceTrack = memo(function RaceTrack({ participants, playerId }: { p
     resize.observe(canvas);
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let frame = 0;
-    function draw() {
+    let lastFrame = 0;
+    function draw(time: number) {
       if (!ctx) return;
+      const elapsed = lastFrame ? time - lastFrame : 1000 / 60;
+      lastFrame = time;
+      const smoothing = 1 - Math.exp(-elapsed / 70);
       ctx.clearRect(0, 0, width, height);
       entries.current.forEach((entry, index) => {
         const y = index * 80 + 42;
@@ -39,7 +43,7 @@ export const RaceTrack = memo(function RaceTrack({ participants, playerId }: { p
         }
         const target = entry.metrics.progress / 100;
         const old = positions.current.get(entry.id) || 0;
-        const position = reducedMotion ? target : old + (target - old) * 0.12;
+        const position = reducedMotion || target >= 1 ? target : old + (target - old) * smoothing;
         positions.current.set(entry.id, position);
         const x = 28 + Math.max(0, finish - 68) * position;
         ctx.fillStyle = '#d8dddf'; ctx.font = '12px system-ui';

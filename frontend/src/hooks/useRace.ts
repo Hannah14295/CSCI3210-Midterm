@@ -3,23 +3,21 @@ import { describeError } from '../api';
 import { webSocketUrl } from '../config';
 import { socketEventSchema } from '../types';
 import type { Race } from '../types';
+import { createTypingSender } from '../typingSender';
 
 type Connection = 'connecting' | 'connected' | 'disconnected';
 
 export function useRace(raceId: number, token: string, playerId: number) {
   const [race, setRace] = useState<Race | null>(null);
   const [text, setText] = useState('');
+  const [typedAt, setTypedAt] = useState(0);
   const [connection, setConnection] = useState<Connection>('connecting');
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
-  const socketRef = useRef<WebSocket | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestText = useRef('');
-  const pending = useRef(false);
+  const senderRef = useRef<ReturnType<typeof createTypingSender> | null>(null);
 
   useEffect(() => {
     setConnection('connecting'); setError(''); setRace(null);
-    pending.current = false;
     let active = true;
     // Token mode avoids accidentally using a different account's admin cookie.
     let socket: WebSocket;
@@ -30,7 +28,12 @@ export function useRace(raceId: number, token: string, playerId: number) {
       setConnection('disconnected');
       return;
     }
-    socketRef.current = socket;
+    const sender = createTypingSender(value => {
+      if (active && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'typing.update', text: value }));
+      }
+    });
+    senderRef.current = sender;
     socket.onmessage = event => {
       if (!active || typeof event.data !== 'string') return;
       let raw: unknown;
@@ -40,10 +43,15 @@ export function useRace(raceId: number, token: string, playerId: number) {
       const data = parsed.data;
       if (data.type === 'auth.required') socket.send(JSON.stringify({ type: 'authenticate', token }));
       if (data.type === 'connected') {
-        setRace(data.race); setText(data.your_text); latestText.current = data.your_text;
+        setRace(data.race); setText(data.your_text); setTypedAt(Date.now());
         setConnection('connected'); setError('');
       }
       if (data.type === 'race.updated') {
+        if (data.race.status === 'finished') sender.stop();
+        else {
+          const own = data.race.participants.find(entry => entry.player.id === playerId);
+          if (own) sender.acknowledge(own.metrics.typed_characters);
+        }
         setRace(previous => ({
           ...data.race,
           participants: data.race.participants.map(entry => {
@@ -61,15 +69,18 @@ export function useRace(raceId: number, token: string, playerId: number) {
             elapsed_seconds: data.finished_at ? data.elapsed_seconds : null,
           },
         ) }) : previous);
-        if (data.player.id === playerId) setError('');
+        if (data.player.id === playerId) {
+          if (data.finished_at) sender.stop();
+          else sender.acknowledge(data.typed_characters);
+          setError('');
+        }
       }
-      if (data.type === 'error') setError(describeError(data.detail));
+      if (data.type === 'error') { sender.reset(); setError(describeError(data.detail)); }
     };
     socket.onclose = event => {
       if (!active) return;
       setConnection('disconnected');
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = null;
+      sender.stop();
       const messages: Record<number, string> = {
         4401: 'Your login was rejected. Sign out and log in again.',
         4403: 'You are not a participant in this race. Return to the lobby and join first.',
@@ -82,26 +93,17 @@ export function useRace(raceId: number, token: string, playerId: number) {
     };
     return () => {
       active = false;
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = null;
+      sender.stop();
+      senderRef.current = null;
       socket.onmessage = null; socket.onclose = null; socket.onerror = null;
       if (socket.readyState === WebSocket.CONNECTING) socket.onopen = () => socket.close();
       else socket.close();
-      socketRef.current = null;
     };
   }, [raceId, token, playerId, attempt]);
 
-  const updateText = useCallback((value: string) => {
-    setText(value); latestText.current = value; pending.current = true;
-    if (timer.current) return;
-    timer.current = setTimeout(() => {
-      timer.current = null;
-      const socket = socketRef.current;
-      if (socket?.readyState === WebSocket.OPEN && pending.current) {
-        socket.send(JSON.stringify({ type: 'typing.update', text: latestText.current }));
-        pending.current = false;
-      }
-    }, 250);
+  const updateText = useCallback((value: string, complete = false) => {
+    setText(value); setTypedAt(Date.now());
+    senderRef.current?.queue(value, complete);
   }, []);
-  return { race, text, updateText, connection, error, reconnect: () => setAttempt(value => value + 1) };
+  return { race, text, typedAt, updateText, connection, error, reconnect: () => setAttempt(value => value + 1) };
 }

@@ -5,6 +5,7 @@ import { raceSchema } from '../types';
 import { useRace } from '../hooks/useRace';
 import { Notice } from './Notice';
 import { RaceTrack } from './RaceTrack';
+import { previewTyping } from '../typing';
 
 const Passage = memo(function Passage({
   target,
@@ -60,7 +61,8 @@ export function RaceRoom({ raceId, onBack }: { raceId: number; onBack: () => voi
 }
 
 function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; token: string; playerId: number; onBack: () => void }) {
-  const { race, text, updateText, connection, error, reconnect } = useRace(raceId, token, playerId);
+  const { race, text, typedAt, updateText, connection, error, reconnect } = useRace(raceId, token, playerId);
+  const [now, setNow] = useState(Date.now);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -68,7 +70,22 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
   const [caret, setCaret] = useState<number | null>(null);
   const own = race?.participants.find(entry => entry.player.id === playerId);
   const finished = Boolean(own?.finished_at);
-  const canType = connection === 'connected' && race?.status === 'running' && Boolean(race.started_at) && !finished;
+  const livePreview = connection === 'connected' && race?.status === 'running' && Boolean(race.started_at) && !finished;
+  const complete = Boolean(race?.paragraph_text) && Array.from(text).length === Array.from(race?.paragraph_text || '').length;
+  const metrics = livePreview && race
+    ? previewTyping(race.paragraph_text, text,
+      ((complete ? typedAt : Math.max(now, typedAt)) - Date.parse(race.started_at!)) / 1000)
+    : own?.metrics;
+  const displayedParticipants = livePreview && race && metrics
+    ? race.participants.map(entry => entry.player.id === playerId ? { ...entry, metrics } : entry)
+    : race?.participants || [];
+  const canType = livePreview && !complete;
+  useEffect(() => {
+    if (!canType) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [canType]);
   useEffect(() => { if (canType) input.current?.focus(); }, [canType]);
   async function start() {
     setBusy(true); setActionError('');
@@ -86,12 +103,12 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
     <Notice message={error || actionError} />
     {connection === 'disconnected' && <button className="button dark" onClick={reconnect}>Reconnect to race</button>}
     {race && <>
-      <RaceTrack participants={race.participants} playerId={playerId} />
+      <RaceTrack participants={displayedParticipants} playerId={playerId} />
       <div className="stats-grid" aria-label="Your race statistics">
-        <div><span>WORDS PER MINUTE</span><strong>{(own?.metrics.wpm || 0).toFixed(1)}<small> WPM</small></strong></div>
-        <div><span>ACCURACY</span><strong>{(own?.metrics.accuracy ?? 100).toFixed(0)}<small>%</small></strong></div>
-        <div><span>PROGRESS</span><strong>{(own?.metrics.progress || 0).toFixed(0)}<small>%</small></strong></div>
-        <div><span>RACE STATUS</span><strong className="status-value">{finished ? 'Finished' : race.status}</strong></div>
+        <div><span>{livePreview ? 'WPM · LIVE ESTIMATE' : 'WORDS PER MINUTE'}</span><strong>{(metrics?.wpm || 0).toFixed(1)}<small> WPM</small></strong></div>
+        <div><span>ACCURACY</span><strong>{(metrics?.accuracy ?? 100).toFixed(0)}<small>%</small></strong></div>
+        <div><span>PROGRESS</span><strong>{(metrics?.progress || 0).toFixed(0)}<small>%</small></strong></div>
+        <div><span>RACE STATUS</span><strong className="status-value">{finished ? 'Finished' : livePreview && complete ? 'Saving result…' : race.status}</strong></div>
       </div>
       {race.status === 'waiting' && <div className="waiting-banner"><div><strong>Everyone on the grid?</strong><p>{race.host.id === playerId ? 'Share the race ID, wait for your friends, then start when you’re ready.' : `Waiting for ${race.host.username} to start. Your input will unlock automatically.`}</p></div>{race.host.id === playerId && <button className="button primary" disabled={busy || connection !== 'connected'} onClick={() => void start()}>{busy ? 'Starting…' : 'Start race →'}</button>}</div>}
       {finished && <div className="finish-banner" role="status"><span className="finish-icon">⚑</span><div><strong>Result saved. Nice run.</strong><p>{own?.wpm?.toFixed(2)} WPM in {own?.elapsed_seconds?.toFixed(2)} seconds. Your result is on the leaderboard.</p></div></div>}
@@ -142,7 +159,7 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
 
               // Previously entered characters must stay exactly as they were.
               if (nextText.startsWith(text)) {
-                updateText(nextText);
+                updateText(nextText, Array.from(nextText).length === Array.from(race.paragraph_text).length);
                 setCaret(Array.from(nextText).length);
               }
             }}

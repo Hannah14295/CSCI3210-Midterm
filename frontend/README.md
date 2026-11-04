@@ -30,6 +30,8 @@ bundle in `frontend/dist/`.
 | `src/types.ts` | Strict types and runtime validation schemas for API and WebSocket payloads |
 | `src/api.ts` | Fetch requests, authentication headers, JSON parsing, and readable errors |
 | `src/hooks/useRace.ts` | Live connection lifecycle, token handshake, race snapshots, and throttled input |
+| `src/typingSender.ts` | Combines unsent input and waits for server acknowledgment to prevent a backlog |
+| `src/typing.ts` | Immediate local progress, accuracy, and estimated WPM for the current player |
 | `src/components/AuthForm.tsx` | Login and registration forms |
 | `src/components/Lobby.tsx` | Fetches passages/recent rooms and handles create/join |
 | `src/components/RaceRoom.tsx` | Race controls, input, highlighting, participant stats, and saved result |
@@ -53,9 +55,14 @@ bundle in `frontend/dist/`.
 10. React renders the waiting room and participant track.
 
 Clicking Start sends another POST. The backend broadcasts the new running state,
-and the hook updates React state. Typing updates local input/highlighting
-immediately and sends the latest buffer at most four times per second. Progress
-and WPM displays use backend broadcasts, not local guesses.
+and the hook updates React state. Typing updates local input, highlighting, your
+car, accuracy, progress, and estimated WPM immediately. Regular input is batched
+at 250ms intervals, with only one update awaiting server acknowledgment. Newer
+keystrokes replace the unsent buffer instead of queuing more work. Completing
+the passage skips the batching delay as soon as any in-flight update is accepted.
+The UI shows Saving result until the server confirms completion. Opponents and
+saved scores always use backend broadcasts. Live WPM is labeled as an estimate;
+its browser clock and network timing can differ from the final server score.
 
 ## State and component separation
 
@@ -92,8 +99,8 @@ the user is signed into admin as Hannah while playing as another account.
   be lost on disconnect. The UI disables typing until reconnected.
 - The first finisher ends the race, including for disconnected participants.
   If nobody finishes, there is no race timeout/abandonment yet.
-- Progress and accuracy are server values; highlight colors are an immediate
-  browser preview. Input is forward-only: Backspace, Delete, undoing previous
+- Your live statistics and car are an immediate browser preview; opponents and
+  completed results use server values. Input is forward-only: Backspace, Delete, undoing previous
   characters, and moving backward to edit are blocked. Django also rejects edits
   to previously saved characters. Players finish at the paragraph's length;
   mistakes lower accuracy and WPM rather than preventing completion.
