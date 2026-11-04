@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Paragraph, Race
+from .models import Paragraph, Race, RaceParticipant
 
 
 @admin.register(Paragraph)
@@ -16,3 +16,11 @@ class RaceAdmin(admin.ModelAdmin):
     search_fields = ["paragraph__title", "host__username"]
     list_select_related = ["paragraph", "host"]
     readonly_fields = ["created_at"]
+
+
+@admin.register(RaceParticipant)
+class RaceParticipantAdmin(admin.ModelAdmin):
+    list_display = ["id", "race", "player", "joined_at"]
+    list_select_related = ["race", "player"]
+    search_fields = ["player__username"]
+    readonly_fields = ["joined_at"]

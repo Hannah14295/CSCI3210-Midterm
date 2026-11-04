@@ -1,11 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from .models import Paragraph, Race
+from .models import Paragraph, Race, RaceParticipant
 
 
 class ParagraphAPITests(APITestCase):
@@ -104,3 +105,41 @@ class RaceTests(TestCase):
         self.assertEqual(race.host, self.host)
         self.assertEqual(race.paragraph, self.paragraph)
         self.assertEqual(race.status, Race.Status.WAITING)
+
+
+class RaceParticipantTests(TestCase):
+    def setUp(self):
+        self.player = get_user_model().objects.create_superuser(
+            username="participant", email="player@example.com", password="test-only-password"
+        )
+        self.paragraph = Paragraph.objects.create(
+            title="Practice", text="Steady practice builds speed and accuracy."
+        )
+        self.race = Race.objects.create(host=self.player, paragraph=self.paragraph)
+
+    def test_player_can_join_different_races_but_not_same_race_twice(self):
+        entry = RaceParticipant.objects.create(race=self.race, player=self.player)
+        self.assertEqual(self.race.participants.get(), entry)
+        self.assertEqual(self.player.race_entries.get(), entry)
+        other_race = Race.objects.create(host=self.player, paragraph=self.paragraph)
+        RaceParticipant.objects.create(race=other_race, player=self.player)
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                RaceParticipant.objects.create(race=self.race, player=self.player)
+        self.assertEqual(RaceParticipant.objects.count(), 2)
+
+    def test_different_players_can_join_one_race(self):
+        other_player = get_user_model().objects.create_user(username="anotherplayer")
+        RaceParticipant.objects.create(race=self.race, player=self.player)
+        RaceParticipant.objects.create(race=self.race, player=other_player)
+        self.assertEqual(self.race.participants.count(), 2)
+
+    def test_admin_creates_entry_and_rejects_duplicate(self):
+        self.client.force_login(self.player)
+        url = reverse("admin:races_raceparticipant_add")
+        data = {"race": self.race.pk, "player": self.player.pk, "_save": "Save"}
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["adminform"].form.non_field_errors())
+        self.assertEqual(RaceParticipant.objects.count(), 1)
