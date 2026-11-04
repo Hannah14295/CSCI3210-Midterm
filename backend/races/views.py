@@ -1,6 +1,7 @@
 from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 from django.db.models import F, Window
@@ -54,16 +55,33 @@ class RaceViewSet(
         return Response(RaceSerializer(race).data)
 
 
+class LeaderboardPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "limit"
+    max_page_size = 20
+
+
 class LeaderboardViewSet(mixins.ListModelMixin, GenericViewSet):
-    """Historical completed runs, fastest first; ties use finish time then ID."""
+    """Rank completed runs by server-saved WPM or accuracy."""
 
     permission_classes = [AllowAny]
     serializer_class = LeaderboardSerializer
+    pagination_class = LeaderboardPagination
     queryset = RaceParticipant.objects.filter(
         finished_at__isnull=False, wpm__isnull=False, elapsed_seconds__gt=0,
-    ).select_related("player").annotate(
-        rank=Window(
-            expression=RowNumber(),
-            order_by=[F("wpm").desc(), F("finished_at").asc(), F("id").asc()],
-        ),
-    ).order_by("-wpm", "finished_at", "id")
+    ).select_related("player")
+
+    def get_queryset(self):
+        metric = self.request.query_params.get("metric", "wpm")
+        if metric not in ("wpm", "accuracy"):
+            raise serializers.ValidationError({"metric": "Choose wpm or accuracy."})
+        queryset = super().get_queryset()
+        fields = ["-wpm", "finished_at", "id"]
+        ordering = [F("wpm").desc(), F("finished_at").asc(), F("id").asc()]
+        if metric == "accuracy":
+            queryset = queryset.filter(accuracy__isnull=False)
+            fields.insert(0, "-accuracy")
+            ordering.insert(0, F("accuracy").desc())
+        return queryset.annotate(
+            rank=Window(expression=RowNumber(), order_by=ordering),
+        ).order_by(*fields)

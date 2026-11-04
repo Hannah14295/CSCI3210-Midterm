@@ -563,6 +563,13 @@ If nobody finishes, the race stays Running; timeout/abandonment handling is not 
 
 GET http://127.0.0.1:8000/api/leaderboard/ lists historical completed attempts:
 
+The React page now shows two independently ranked tables with ten results each:
+WPM and accuracy. It requests `?metric=wpm&limit=10` and
+`?metric=accuracy&limit=10`; no frontend page controls are shown. The default API
+behavior below remains available. Accuracy is saved when a participant finishes;
+migration 0007 backfills older scores when frozen race text and full saved input
+are available. Accuracy ties use WPM, then finish time and entry ID.
+
 - Public, read-only, paginated (20 per page).
 - Ordered by descending saved WPM; ties use earlier finish timestamp, then entry ID.
 - Each row includes rank, race ID, player ID/username, final WPM, duration, and finish time.

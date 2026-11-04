@@ -57,5 +57,5 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RaceParticipant
-        fields = ["rank", "id", "race", "player", "wpm", "elapsed_seconds", "finished_at"]
+        fields = ["rank", "id", "race", "player", "wpm", "accuracy", "elapsed_seconds", "finished_at"]
         read_only_fields = fields

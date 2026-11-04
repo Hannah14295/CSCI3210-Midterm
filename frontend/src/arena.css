@@ -249,6 +249,37 @@
 .race-room .typing-surface { border: 1px solid var(--arena-border); border-radius: 10px; background: #fcfbff; }
 .race-room .typing-passage { padding: 16px; font-size: 19px; line-height: 1.9; }
 
+/* Two independent top-ten boards. No page controls. */
+.leaderboards { max-width: 1120px; }
+.leaderboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.leaderboards .leaderboard-panel { padding: 24px; background: #fbf9ff; }
+.leaderboards .section-heading { flex-wrap: wrap; gap: 8px; }
+.leaderboards h2 { font-size: 22px; }
+.leaderboard-category { padding: 4px 10px; border-radius: 20px; background: #efe8fb; font-size: 11px; color: var(--arena-ink); }
+.leaderboards table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.leaderboards thead { background: #efe8fb; }
+.leaderboards th,
+.leaderboards td { padding: 14px 10px; border-bottom: 1px solid var(--arena-border); text-align: left; }
+.leaderboards thead th { font-size: 11px; font-weight: bold; color: var(--arena-muted); }
+.leaderboards thead th:first-child { border-radius: 8px 0 0 0; }
+.leaderboards thead th:last-child { border-radius: 0 8px 0 0; }
+.leaderboards tbody tr:last-child > * { border-bottom: 0; }
+.leaderboards tbody tr:hover { background: #f3eefb; }
+.leaderboards .racer-name { min-width: 90px; max-width: 180px; overflow-wrap: anywhere; font-size: 13px; }
+.leaderboards .result-race { display: block; margin-top: 4px; font-size: 10px; font-weight: normal; color: var(--arena-muted); }
+.leaderboards .rank { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: #eee9f5; font-weight: bold; }
+.leaderboards .rank-1 { background: #fce0ea; color: #a8003a; }
+.leaderboards .rank-2 { background: #dbeafe; color: #1d4ed8; }
+.leaderboards .rank-3 { background: #dff0e5; color: #286645; }
+.leaderboards .score-cell { font-weight: bold; font-size: 16px; color: var(--arena-purple); white-space: nowrap; }
+.leaderboards .secondary-score { font-size: 12px; color: var(--arena-muted); white-space: nowrap; }
+.leaderboards .empty h3 { font-size: 17px; }
+.leaderboards .empty p { margin-bottom: 0; font-size: 13px; }
+
+@media (max-width: 950px) {
+  .leaderboard-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
 @media (max-width: 700px) {
   .site-header nav { gap: 12px; flex-wrap: wrap; }
   .site-header .nav-item { padding: 10px 20px; }

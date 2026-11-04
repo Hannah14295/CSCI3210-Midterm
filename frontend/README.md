@@ -48,7 +48,7 @@ Style `.race-progress`, `.racer-list`, and `.racer-progress` to design that sect
 | `src/components/Lobby.tsx` | Fetches passages/recent rooms and handles create/join |
 | `src/components/RaceRoom.tsx` | Race controls, input, highlighting, participant stats, and saved result |
 | `src/components/RaceProgress.tsx` | Racer names, progress bars, and completion percentages |
-| `src/components/Leaderboard.tsx` | Fetches and displays paginated completed results |
+| `src/components/Leaderboard.tsx` | Two independent top-ten tables for saved WPM and accuracy |
 | `src/components/Notice.tsx` | Reusable accessible error message |
 | `src/styles.css` | Minimal usability and typing mechanics; starting point for your own design |
 | `src/arena.css` | Lobby and race-room design; scoped colors, cards, controls, and mobile layout |
@@ -102,8 +102,14 @@ the user is signed into admin as Hannah while playing as another account.
 
 ## Useful limits to understand
 
-- The lobby shows the first 20 passages and 20 newest races. You can open older
-  races by ID. The leaderboard has Previous/Next pagination.
+- The lobby shows the first 20 passages and 10 newest races. You can open older
+  races by ID. WPM and accuracy leaderboards each show ten completed attempts,
+  with Refresh and no page controls. Accuracy ties use higher WPM, then earlier
+  finish time and entry ID. Multiple attempts by the same player remain separate.
+- Accuracy is saved by Django at completion. Migration 0007 reconstructs older
+  accuracy results from frozen race text and full saved input where available.
+  Older results without that data still appear by WPM, with unknown accuracy
+  shown as a dash, and are excluded from the accuracy ranking.
 - Opening Leaderboard or returning to the lobby disconnects that screen's live
   connection; opening the room again reconnects and loads saved progress.
 - Refresh returns to the lobby, where recent rooms let you reopen your race.

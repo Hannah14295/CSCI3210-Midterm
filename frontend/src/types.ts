@@ -19,7 +19,7 @@ export const raceSchema = z.object({
 export const paragraphSchema = z.object({ id: z.number(), title: z.string(), text: z.string() });
 export const resultSchema = z.object({
   rank: z.number(), id: z.number(), race: z.number(), player: userSchema,
-  wpm: decimalSchema, elapsed_seconds: decimalSchema, finished_at: z.string(),
+  wpm: decimalSchema, accuracy: decimalSchema.nullable(), elapsed_seconds: decimalSchema, finished_at: z.string(),
 });
 export const authSchema = z.object({ user: userSchema, token: z.string() });
 export const pageSchema = <T extends z.ZodType>(item: T) => z.object({

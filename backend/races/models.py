@@ -76,6 +76,7 @@ class RaceParticipant(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     elapsed_seconds = models.DecimalField(max_digits=14, decimal_places=6, null=True, blank=True)
     wpm = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    accuracy = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     class Meta:
         ordering = ["joined_at", "id"]

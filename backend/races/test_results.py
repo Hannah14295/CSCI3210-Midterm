@@ -47,6 +47,7 @@ class SavedResultTests(TestCase):
         self.entry.refresh_from_db()
         self.assertIsNone(self.entry.finished_at)
         self.assertIsNone(self.entry.wpm)
+        self.assertIsNone(self.entry.accuracy)
         result = self.submit(wrong)
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.finished_at, self.finish_time)
@@ -54,18 +55,19 @@ class SavedResultTests(TestCase):
         self.assertEqual(self.entry.wpm, calculate_wpm(len(self.paragraph.text) - 1, 60))
         self.assertEqual(result["wpm"], float(self.entry.wpm))
         self.assertLess(result["accuracy"], 100)
+        self.assertEqual(self.entry.accuracy, Decimal(str(result["accuracy"])))
         self.race.refresh_from_db()
         self.assertEqual(self.race.status, Race.Status.FINISHED)
 
     def test_result_cannot_be_resubmitted_or_changed(self):
         self.submit(self.paragraph.text)
         self.entry.refresh_from_db()
-        saved = (self.entry.finished_at, self.entry.wpm, self.entry.revision)
+        saved = (self.entry.finished_at, self.entry.wpm, self.entry.accuracy, self.entry.revision)
         for text in [self.paragraph.text, "", "hello"]:
             with self.assertRaises(RaceConflict):
                 self.submit(text)
         self.entry.refresh_from_db()
-        self.assertEqual((self.entry.finished_at, self.entry.wpm, self.entry.revision), saved)
+        self.assertEqual((self.entry.finished_at, self.entry.wpm, self.entry.accuracy, self.entry.revision), saved)
 
     def test_first_finisher_ends_race_for_other_players(self):
         self.submit(self.paragraph.text)
@@ -97,12 +99,12 @@ class LeaderboardTests(APITestCase):
         self.race = Race.objects.create(host=self.player, paragraph=paragraph)
         self.when = timezone.now()
 
-    def result(self, wpm, when=None):
+    def result(self, wpm, when=None, accuracy=None):
         # Different races allow multiple historical results for the same player.
         race = Race.objects.create(host=self.player, paragraph=self.race.paragraph)
         return RaceParticipant.objects.create(
             race=race, player=self.player, finished_at=when or self.when,
-            elapsed_seconds=60, wpm=wpm,
+            elapsed_seconds=60, wpm=wpm, accuracy=accuracy,
         )
 
     def test_historical_results_are_ranked_and_unfinished_entries_excluded(self):
@@ -130,3 +132,56 @@ class LeaderboardTests(APITestCase):
         response = self.client.post(reverse("leaderboard-list"), {"wpm": 99999})
         self.assertEqual(response.status_code, 405)
         self.assertFalse(RaceParticipant.objects.exists())
+
+    def test_accuracy_ranks_all_results_independently_with_wpm_breaking_ties(self):
+        fastest = self.result(120, accuracy=80)
+        precise = self.result(30, accuracy=100)
+        precise_faster = self.result(60, accuracy=100)
+        missing = self.result(200)  # No trustworthy historical accuracy.
+        zero = self.result(0, accuracy=0)
+        url = reverse("leaderboard-list")
+        speed = self.client.get(url, {"metric": "wpm", "limit": 10})
+        self.assertEqual([row["id"] for row in speed.data["results"]],
+                         [missing.pk, fastest.pk, precise_faster.pk, precise.pk, zero.pk])
+        accuracy = self.client.get(url, {"metric": "accuracy", "limit": 10})
+        self.assertEqual(accuracy.status_code, 200)
+        self.assertEqual([row["id"] for row in accuracy.data["results"]],
+                         [precise_faster.pk, precise.pk, fastest.pk, zero.pk])
+        self.assertEqual([row["rank"] for row in accuracy.data["results"]], [1, 2, 3, 4])
+        self.assertEqual(float(accuracy.data["results"][0]["accuracy"]), 100)
+
+    def test_each_board_returns_only_the_ten_best_results_when_requested(self):
+        entries = [self.result(20 + i, accuracy=80 + i) for i in range(15)]
+        for metric in ("wpm", "accuracy"):
+            response = self.client.get(reverse("leaderboard-list"), {"metric": metric, "limit": 10})
+            self.assertEqual(response.status_code, 200)
+            rows = response.data["results"]
+            self.assertEqual(len(rows), 10)
+            self.assertEqual([row["id"] for row in rows], [entry.pk for entry in reversed(entries[-10:])])
+            self.assertEqual([row["rank"] for row in rows], list(range(1, 11)))
+
+    def test_unknown_ranking_metric_is_rejected(self):
+        response = self.client.get(reverse("leaderboard-list"), {"metric": "client_score"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_accuracy_backfill_uses_saved_text_and_skips_incomplete_history(self):
+        from importlib import import_module
+        from types import SimpleNamespace
+        from django.apps import apps
+        from django.db import connection
+
+        known = self.result(30)
+        known.race.race_text = "hello"
+        known.race.save(update_fields=["race_text"])
+        known.typed_text = "hexlo"
+        known.save(update_fields=["typed_text"])
+        unknown = self.result(90)
+        self.race.paragraph.text = "The passage was edited after the race."
+        self.race.paragraph.save()
+
+        migration = import_module("races.migrations.0007_raceparticipant_accuracy")
+        migration.backfill_accuracy(apps, SimpleNamespace(connection=connection))
+        known.refresh_from_db()
+        unknown.refresh_from_db()
+        self.assertEqual(known.accuracy, Decimal("80.00"))
+        self.assertIsNone(unknown.accuracy)

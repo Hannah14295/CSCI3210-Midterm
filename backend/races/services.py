@@ -79,7 +79,8 @@ def update_typing(*, race_id, player_id, text):
         participant.finished_at = now
         participant.elapsed_seconds = elapsed
         participant.wpm = current_wpm
-    participant.save(update_fields=["typed_text", "revision", "finished_at", "elapsed_seconds", "wpm"])
+        participant.accuracy = Decimal(str(metrics["accuracy"]))
+    participant.save(update_fields=["typed_text", "revision", "finished_at", "elapsed_seconds", "wpm", "accuracy"])
     payload = {
         "type": "progress.updated",
         "race_id": race.pk,
