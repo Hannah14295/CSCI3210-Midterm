@@ -5,9 +5,9 @@
 <h2>Music Credits</h2>
 
 <p>
-  Music: “Autumn Dreams” by Abbynoise on
-  <a href="https://uppbeat.io/c/abbynoise">Uppbeat</a><br>
-  License code: BXSHEQRGQ1KF7R9D
+  Music: 'In Good Hands' by Kurtz Martin on
+  <a href="https://uppbeat.io/c/kurtz-martin">#Uppbeat</a><br>
+  License code: 6KOQ9JO2JKMV3ZVN
 </p>
 
 ## TypeRacer

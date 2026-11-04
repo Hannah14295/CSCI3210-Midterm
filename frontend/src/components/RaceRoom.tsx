@@ -8,6 +8,7 @@ import { RaceProgress } from './RaceProgress';
 import { previewTyping } from '../typing';
 import { raceResults } from '../raceResults';
 import { RaceResultsDialog } from './RaceResultsDialog';
+import { RaceMusic } from './RaceMusic';
 
 const Passage = memo(function Passage({
   target,
@@ -105,6 +106,7 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
     <div className="room-heading"><button className="text-button back" onClick={onBack}>← Race lobby</button><span className={`connection ${connection}`} role="status"><i />{connection === 'connected' ? 'Live connection' : connection}</span></div>
     <div className="page-heading"><div><span className="eyebrow">ROOM #{raceId}</span><h1>{finished ? 'Across the line.' : race?.status === 'running' ? 'Make every key count.' : 'Your starting line.'}</h1><p className="muted">{race ? `Hosted by ${race.host.username} · ${race.participants.length} ${race.participants.length === 1 ? 'racer' : 'racers'}` : 'Connecting to your race…'}</p></div><button className="button subtle" onClick={copy}>{copied ? 'ID copied ✓' : `Copy race ID #${raceId}`}</button></div>
     <Notice message={error || actionError} />
+    <RaceMusic playing={canType} />
     {(connection === 'disconnected' || connection === 'reconnecting') && <button className="button dark" onClick={reconnect}>Reconnect to race</button>}
     {race && <>
       <RaceProgress participants={displayedParticipants} playerId={playerId} />
