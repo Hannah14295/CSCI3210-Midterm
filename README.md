@@ -23,7 +23,8 @@ npm --prefix frontend run dev
 Open http://127.0.0.1:5173/. Log in with your existing account, or register a regular
 player account. Pick a passage, create a race, share its ID, and start when the
 participants have joined. The host can also run a solo practice race. Finish
-the passage exactly to save a result, then open Leaderboard in the navigation.
+the passage's full length to save a result, then open Leaderboard in the navigation.
+Typing is forward-only: mistakes reduce accuracy and WPM, and the first finisher ends the race.
 
 The game frontend is separate from http://127.0.0.1:8000/admin/. It replaces the
 manual API forms with user-facing buttons and forms. For two different players,
@@ -485,26 +486,25 @@ The browser sends its latest complete input buffer at most every 250 millisecond
 
 `consumers.py` identifies the sender and calls `services.update_typing`. That
 service verifies membership, running state, the server start timestamp, and input
-length/type. The buffer may be empty (clearing/backspacing) but cannot exceed the
+length/type. Each update must preserve the previously saved text as its prefix;
+deleting or changing earlier characters is rejected. Input cannot exceed the
 target length or 2000 characters. It updates the participant in a transaction
 and broadcasts `progress.updated` only after saving successfully.
 
 The outgoing event contains player identity, race ID, revision, and:
 
 - `correct_prefix`: number of consecutive correct characters from the beginning.
-- `progress`: correct_prefix / paragraph length * 100, rounded to two decimals.
+- `progress`: entered characters / paragraph length * 100, rounded to two decimals.
 - `correct_characters`: matching characters at the same positions in the input.
 - `accuracy`: correct_characters / current input length * 100. Empty input is
-  defined as 100% accuracy with 0% progress. This is current-buffer accuracy,
-  not a record of all historical keystrokes or corrected mistakes.
-- `complete`: true only when the entire input exactly matches the saved target.
+  defined as 100% accuracy with 0% progress. Earlier characters cannot be corrected.
+- `complete`: true when the input reaches the saved target's length, even with errors.
 - `difference`: a suffix replacement (`start`, `delete_count`, `insert`) comparing
   the old and new buffer. The server computes this rather than trusting a delta.
 
-For target `hello` and input `hexlo`, correct_prefix is 2, progress is 40%, and
-accuracy is 80% (four of five positions match). Correcting it to `hello` gives
-100% progress and accuracy. Milestone 8 below now uses full matching to save
-the result and finish the participant's run.
+For target `hello` and input `hexlo`, correct_prefix is 2, progress is 100%, and
+accuracy is 80% (four of five positions match). The player finishes with this
+mistake preserved. Milestone 8 saves the result and ends the race.
 
 `typed_text` and `revision` are persisted on RaceParticipant. Every accepted update
 increments revision so the browser can ignore older progress events delivered
@@ -536,29 +536,28 @@ this milestone is input validation, not an anti-cheat system.
 WPM uses five characters as one standardized word, including spaces/punctuation:
 
 ```text
-WPM = (correct prefix characters / 5) / elapsed minutes
-    = correct prefix characters * 12 / elapsed seconds
+WPM = (correct characters / 5) / elapsed minutes
+    = correct characters * 12 / elapsed seconds
 ```
 
 For example, 300 correct characters in 60 seconds is 60 WPM. The live value uses
 the latest accepted input and the server's shared race start time. It updates
 when input or snapshots arrive, not on a standalone ticking timer. Network and
 the demo's up-to-250ms send delay are included in measured time. Final WPM uses
-the full frozen paragraph length, because only an exact match can finish.
+the number of matching characters at their target positions, so errors reduce speed.
 
 `services.update_typing` records `finished_at`, `elapsed_seconds`, and `wpm` on
-RaceParticipant on its first exact match. Server timestamps supply the duration;
+RaceParticipant on its first full-length submission. Server timestamps supply the duration;
 client-supplied scores/times are ignored. Decimal arithmetic rounds WPM to two
 places. A finished participant cannot change the result by sending more typing
 updates (409). There is one result per player/race entry; a new attempt requires
 a new race. Reconnecting restores the same saved result.
 
-Other participants may continue after one player finishes. Once every participant
-has a saved finish, the race status becomes Finished. Finish updates broadcast
+The first participant to finish ends the race for everyone. The race status
+becomes Finished and further typing submissions are rejected. Finish updates broadcast
 both progress.updated (with final WPM and finished_at) and race.updated snapshots.
-The test page disables the finishing player's input and displays "result saved!".
-If someone disconnects before finishing, the race currently stays Running until
-they return and finish; timeout/abandonment handling is not implemented yet.
+The React page disables everyone's input; the winner sees "result saved!".
+If nobody finishes, the race stays Running; timeout/abandonment handling is not implemented yet.
 
 GET http://127.0.0.1:8000/api/leaderboard/ lists historical completed attempts:
 
@@ -566,7 +565,7 @@ GET http://127.0.0.1:8000/api/leaderboard/ lists historical completed attempts:
 - Ordered by descending saved WPM; ties use earlier finish timestamp, then entry ID.
 - Each row includes rank, race ID, player ID/username, final WPM, duration, and finish time.
 - Multiple attempts by one player are separate rows, not one personal-best row.
-- An individual finish appears even while others are still racing.
+- The winner's completed attempt appears; losers retain partial progress without a completed result.
 - Unfinished participants and old entries without a saved result are excluded.
 - Rank is global across pages; ties get consecutive ranks in the stated order.
 
@@ -576,9 +575,9 @@ and "result saved!", then open the leaderboard link. Refreshing/reconnecting
 should show the same final WPM. Prior practice buffers are not converted into
 scored results retroactively; complete a new race to create one.
 
-Accuracy still measures the current buffer. Since finishing requires exact text,
-final current-buffer accuracy is 100%; corrected mistakes cost time but are not
-counted as a lifetime keystroke error rate. WPM comparisons across different
+Accuracy measures matching positions divided by all entered characters. Input is
+append-only, so final accuracy can stay below 100% and mistakes cannot be erased.
+WPM comparisons across different
 paragraph lengths/difficulties are a simple global historical leaderboard, not
 a normalized competitive rating or an anti-cheat system.
 

@@ -1,174 +1,1078 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-:root { font-family: 'DM Sans', system-ui, sans-serif; color: #24292b; background: #f4f3ed; font-synthesis: none; --paper: #fffefa; --ink: #24292b; --muted: #69706e; --line: #dedfd6; --lime: #dfed78; }
-* { box-sizing: border-box; }
-body { margin: 0; }
-button, input, select, textarea { font: inherit; }
-button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
-button { cursor: pointer; }
-button:disabled { cursor: not-allowed; opacity: .5; }
-a { color: inherit; }
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #7a8b1c; outline-offset: 3px; }
-button { border: 0; }
-.app-shell { max-width: 1500px; margin: auto; padding: 0 5%; }
-.site-header { min-height: 104px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 28px; }
-.brand { display: flex; gap: 7px; align-items: center; background: none; padding: 0; font: 700 29px 'Space Grotesk', sans-serif; letter-spacing: -1.5px; }
-.brand-icon { display: inline-grid; place-items: center; background: var(--ink); color: var(--lime); width: 34px; height: 34px; font-size: 27px; border-radius: 8px; margin-right: 4px; }
-.brand-period { color: #809325; margin-left: -7px; }
-nav { display: flex; gap: 24px; }
-.nav-item { position: relative; padding: 40px 0; background: none; font-size: 14px; color: var(--muted); }
-.nav-item.active { color: var(--ink); font-weight: 700; }
-.nav-item.active:after { content: ''; position: absolute; bottom: 26px; left: 0; width: 100%; height: 2px; background: var(--ink); }
-.account-area, .account-name { display: flex; gap: 14px; align-items: center; font-size: 13px; }
-.header-caption { color: var(--muted); font-size: 12px; }
-main { min-height: calc(100vh - 208px); padding: 48px 0 64px; }
-h1, h2, h3 { font-family: 'Space Grotesk', system-ui, sans-serif; margin: 0; line-height: 1.12; font-weight: 600; letter-spacing: -1px; }
-h1 { font-size: clamp(32px, 3.4vw, 48px); margin: 12px 0; }
-h2 { font-size: 26px; }
-h3 { font-size: 24px; }
-p { line-height: 1.6; }
-.eyebrow, .section-number, .track-top, .stats-grid > div > span { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 1.5px; }
-.eyebrow { color: #6b735e; }
-.yellow-dot { color: #8e9b38; }
-.muted { color: var(--muted); }
-.page-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 30px; }
-.page-heading p { margin: 10px 0 0; font-size: 14px; }
-.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 30px; }
-.panel h2 { margin-top: 14px; }
-.panel > p { font-size: 14px; }
-.button { padding: 12px 19px; border: 1px solid transparent; border-radius: 7px; font-weight: 600; font-size: 13px; white-space: nowrap; transition: background .15s, transform .15s; }
-.button:hover:not(:disabled) { transform: translateY(-1px); }
-.primary { background: var(--lime); color: #252d12; }
-.primary:hover:not(:disabled) { background: #d3e465; }
-.dark { background: #252d30; color: #fffefa; }
-.subtle { background: transparent; border-color: var(--line); color: var(--ink); }
-.subtle:hover:not(:disabled) { background: #eaece2; }
-.wide { width: 100%; margin-top: 20px; }
-.text-button { padding: 0; background: transparent; color: #374123; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
-label { display: block; font-size: 12px; font-weight: 600; margin: 20px 0 8px; }
-input, select, textarea { display: block; width: 100%; border: 1px solid #d3d7cb; border-radius: 7px; background: #fffefa; color: var(--ink); padding: 12px 14px; }
-input::placeholder, textarea::placeholder { color: #8b9089; }
-input:disabled, textarea:disabled { background: #f2f3ec; }
-.notice { border: 1px solid #e3b6a4; background: #fff0e9; color: #863b23; padding: 13px 17px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin: 16px 0; }
-.input-help { color: var(--muted); font-size: 11px; line-height: 1.65; }
-.auth-layout { display: grid; grid-template-columns: 1.25fr 1fr; gap: 8%; align-items: center; padding: 30px 0 50px; }
-.welcome-copy h1 { font-size: clamp(48px, 6.2vw, 86px); line-height: 1.02; letter-spacing: -4px; margin: 22px 0; }
-.welcome-copy > p { color: var(--muted); max-width: 390px; font-size: 16px; }
-.welcome-track { display: flex; align-items: center; gap: 16px; margin: 38px 0; font: 10px 'IBM Plex Mono', monospace; letter-spacing: 1px; }
-.welcome-track div { flex: 1; border-bottom: 2px dashed #c2c7b4; color: #82912a; font-size: 44px; line-height: 30px; padding-left: 50%; }
-.feature-strip { display: flex; gap: 17px; font-size: 11px; color: #5b6551; flex-wrap: wrap; }
-.feature-strip span:before { content: '↗'; padding-right: 6px; color: #7d8c2e; }
-.auth-panel { padding: 36px; max-width: 430px; width: 100%; justify-self: end; }
-.auth-panel h2 { margin-top: 14px; }
-.auth-switch { font-size: 12px; margin-top: 22px; text-align: center; }
-.live-pill { display: inline-flex; gap: 8px; align-items: center; font-size: 11px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 30px; white-space: nowrap; }
-.live-pill i, .connection i { width: 6px; height: 6px; background: #698b38; border-radius: 50%; }
-.lobby-grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; }
-.section-number { color: #7b8367; }
-.passage-preview { background: #f6f6ee; padding: 20px; margin-top: 18px; border: 1px solid #e5e7dc; border-radius: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.9; max-height: 150px; overflow: auto; }
-.passage-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: #818773; margin-top: 10px; }
-.tip { border-top: 1px solid var(--line); margin-top: 26px; padding-top: 22px; }
-.tip > span { font: 10px 'IBM Plex Mono', monospace; letter-spacing: 1px; color: #7b8367; }
-.tip p { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
-.rooms-section, .racers-section { margin-top: 35px; }
-.section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
-.section-heading h2 { margin-top: 7px; }
-.rooms-list { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--paper); }
-.room-row { display: flex; align-items: center; gap: 20px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
-.room-row:last-child { border-bottom: 0; }
-.room-id { font: 15px 'IBM Plex Mono', monospace; width: 50px; color: #6f775e; }
-.room-info { display: flex; flex: 1; flex-direction: column; gap: 4px; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
-.room-info > span { font-size: 11px; color: var(--muted); }
-.status-tag { border-radius: 4px; padding: 5px 9px; font: 10px 'IBM Plex Mono', monospace; text-transform: uppercase; background: #eff0e9; color: #777d6c; }
-.status-tag.waiting { color: #59702e; background: #eef3db; }
-.status-tag.running { color: #336f80; background: #e1f0f4; }
-.empty { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 14px; border-radius: 10px; }
-.empty h3 { color: var(--ink); }
-.empty-flag { display: inline-block; font-size: 45px; color: #849237; margin-bottom: 15px; }
-.avatar { background: #e8ebdc; color: #5b6a3c; display: inline-grid; place-items: center; width: 33px; height: 33px; border-radius: 50%; font-size: 13px; flex-shrink: 0; }
-.avatar.small { width: 27px; height: 27px; font-size: 11px; }
-.room-heading { display: flex; justify-content: space-between; margin-bottom: 28px; }
-.back { text-decoration: none; color: var(--muted); }
-.connection { display: inline-flex; gap: 7px; align-items: center; color: var(--muted); font-size: 11px; }
-.connection.disconnected i { background: #bd623f; }
-.connection.connecting i { background: #a4943a; }
-.track { border-radius: 12px; padding: 20px 24px; background: #252d32; color: #d7dcde; overflow: hidden; }
-.track-top { display: flex; justify-content: space-between; color: #a6b0ae; margin-bottom: 8px; }
-.track canvas { width: 100%; display: block; }
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 10px; background: var(--paper); margin: 20px 0; }
-.stats-grid > div { padding: 22px 25px; border-right: 1px solid var(--line); }
-.stats-grid > div:last-child { border-right: 0; }
-.stats-grid > div > span { color: #7d846f; font-size: 9px; letter-spacing: 1px; }
-.stats-grid strong { display: block; font: 500 34px 'Space Grotesk', sans-serif; margin-top: 7px; }
-.stats-grid small { font-size: 15px; color: #85906b; }
-.stats-grid strong.status-value { font-size: 23px; padding-top: 8px; text-transform: capitalize; }
-.waiting-banner, .finish-banner { display: flex; align-items: center; gap: 22px; justify-content: space-between; background: #e9eed4; border: 1px solid #d7dfb8; border-radius: 10px; padding: 20px 24px; margin: 20px 0; }
-.waiting-banner p, .finish-banner p { margin: 5px 0 0; color: #68734f; font-size: 12px; }
-.finish-banner { justify-content: flex-start; background: #e4f0e2; border-color: #c9dfc7; }
-.finish-icon { font-size: 34px; color: #557742; }
-.typing-panel { margin-top: 24px; }
-.typing-passage { font: 400 clamp(18px, 2vw, 24px)/1.85 'IBM Plex Mono', monospace; white-space: pre-wrap; overflow-wrap: anywhere; color: #7b8177; padding: 8px 0 18px; }
-.char-correct { color: #333c27; background: #e9efcf; }
-.char-wrong { color: #a83a2a; background: #f9dcd0; text-decoration: underline; }
-.char-cursor { border-left: 2px solid #7d8d2c; margin-left: -2px; }
-.typing-panel textarea { min-height: 100px; resize: vertical; font: 14px/1.8 'IBM Plex Mono', monospace; }
-.typing-bottom { display: flex; justify-content: space-between; gap: 20px; font-size: 10px; color: #818773; margin-top: 10px; }
-.racers-section h2 { margin-bottom: 18px; }
-progress { accent-color: #a6ba49; width: 150px; height: 8px; }
-.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
-.leaderboard-panel { padding-bottom: 18px; }
-.table-scroll { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; text-align: left; font-size: 13px; }
-th { color: #858b7d; font: 10px 'IBM Plex Mono', monospace; text-transform: uppercase; padding: 16px; border-bottom: 1px solid var(--line); }
-td { padding: 21px 16px; border-bottom: 1px solid #eceee5; white-space: nowrap; }
-.wpm-cell { font: 600 21px 'Space Grotesk', sans-serif; color: #667a26; }
-.rank { font-family: 'IBM Plex Mono', monospace; color: #858b7d; }
-.rank-1 { color: #6f8128; background: #e8efc9; border-radius: 5px; padding: 6px; }
-.pagination { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 20px; font-size: 12px; color: var(--muted); }
-footer { min-height: 85px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 20px; font: 9px 'IBM Plex Mono', monospace; letter-spacing: 1px; color: #848a7c; }
-.footer-divider { padding: 0 12px; color: #bbc0af; }
-.skip-link { position: absolute; top: -60px; padding: 12px; background: var(--lime); z-index: 10; }
-.skip-link:focus { top: 10px; }
+/* Shared colors and default text styles
+   CSS variables beginning with -- are reused with var(--name). */
+
+:root {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: #24292b;
+  background: #f4f3ed;
+  font-synthesis: none;
+  --paper: #fffefa;
+  --ink: #24292b;
+  --muted: #69706e;
+  --line: #dedfd6;
+  --lime: #dfed78;
+}
+
+/* Basic element defaults and keyboard focus outlines */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+a {
+  color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #7a8b1c;
+  outline-offset: 3px;
+}
+
+button {
+  border: 0;
+}
+
+/* Page container, header, logo, navigation, and account menu */
+
+.app-shell {
+  max-width: 1500px;
+  margin: auto;
+  padding: 0 5%;
+}
+
+.site-header {
+  min-height: 104px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.brand {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  background: none;
+  padding: 0;
+  font: 700 29px 'Space Grotesk', sans-serif;
+  letter-spacing: -1.5px;
+}
+
+.brand-icon {
+  display: inline-grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--lime);
+  width: 34px;
+  height: 34px;
+  font-size: 27px;
+  border-radius: 8px;
+  margin-right: 4px;
+}
+
+.brand-period {
+  color: #809325;
+  margin-left: -7px;
+}
+
+nav {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-item {
+  position: relative;
+  padding: 40px 0;
+  background: none;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.nav-item.active {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.nav-item.active:after {
+  content: '';
+  position: absolute;
+  bottom: 26px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--ink);
+}
+
+.account-area,
+.account-name {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.header-caption {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Main content, headings, and shared text styles */
+
+main {
+  min-height: calc(100vh - 208px);
+  padding: 48px 0 64px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  margin: 0;
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+
+h1 {
+  font-size: clamp(32px, 3.4vw, 48px);
+  margin: 12px 0;
+}
+
+h2 {
+  font-size: 26px;
+}
+
+h3 {
+  font-size: 24px;
+}
+
+p {
+  line-height: 1.6;
+}
+
+.eyebrow,
+.section-number,
+.track-top,
+.stats-grid > div > span {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+}
+
+.eyebrow {
+  color: #6b735e;
+}
+
+.yellow-dot {
+  color: #8e9b38;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.page-heading p {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+/* Reusable cards / panels */
+
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 30px;
+}
+
+.panel h2 {
+  margin-top: 14px;
+}
+
+.panel > p {
+  font-size: 14px;
+}
+
+/* Buttons — primary (lime), dark, subtle, and text-only variants */
+
+.button {
+  padding: 12px 19px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background .15s, transform .15s;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.primary {
+  background: var(--lime);
+  color: #252d12;
+}
+
+.primary:hover:not(:disabled) {
+  background: #d3e465;
+}
+
+.dark {
+  background: #252d30;
+  color: #fffefa;
+}
+
+.subtle {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.subtle:hover:not(:disabled) {
+  background: #eaece2;
+}
+
+.wide {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.text-button {
+  padding: 0;
+  background: transparent;
+  color: #374123;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Form labels, inputs, dropdowns, and textareas */
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+}
+
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  border: 1px solid #d3d7cb;
+  border-radius: 7px;
+  background: #fffefa;
+  color: var(--ink);
+  padding: 12px 14px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8b9089;
+}
+
+input:disabled,
+textarea:disabled {
+  background: #f2f3ec;
+}
+
+/* Error messages and small explanatory text */
+
+.notice {
+  border: 1px solid #e3b6a4;
+  background: #fff0e9;
+  color: #863b23;
+  padding: 13px 17px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 16px 0;
+}
+
+.input-help {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+/* Login and registration screen */
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 8%;
+  align-items: center;
+  padding: 30px 0 50px;
+}
+
+.welcome-copy h1 {
+  font-size: clamp(48px, 6.2vw, 86px);
+  line-height: 1.02;
+  letter-spacing: -4px;
+  margin: 22px 0;
+}
+
+.welcome-copy > p {
+  color: var(--muted);
+  max-width: 390px;
+  font-size: 16px;
+}
+
+.welcome-track {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 38px 0;
+  font: 10px 'IBM Plex Mono', monospace;
+  letter-spacing: 1px;
+}
+
+.welcome-track div {
+  flex: 1;
+  border-bottom: 2px dashed #c2c7b4;
+  color: #82912a;
+  font-size: 44px;
+  line-height: 30px;
+  padding-left: 50%;
+}
+
+.feature-strip {
+  display: flex;
+  gap: 17px;
+  font-size: 11px;
+  color: #5b6551;
+  flex-wrap: wrap;
+}
+
+.feature-strip span:before {
+  content: '↗';
+  padding-right: 6px;
+  color: #7d8c2e;
+}
+
+.auth-panel {
+  padding: 36px;
+  max-width: 430px;
+  width: 100%;
+  justify-self: end;
+}
+
+.auth-panel h2 {
+  margin-top: 14px;
+}
+
+.auth-switch {
+  font-size: 12px;
+  margin-top: 22px;
+  text-align: center;
+}
+
+/* Lobby — multiplayer indicator, create/join cards, and passage preview */
+
+.live-pill {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  padding: 9px 13px;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  white-space: nowrap;
+}
+
+.live-pill i,
+.connection i {
+  width: 6px;
+  height: 6px;
+  background: #698b38;
+  border-radius: 50%;
+}
+
+.lobby-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 22px;
+}
+
+.section-number {
+  color: #7b8367;
+}
+
+.passage-preview {
+  background: #f6f6ee;
+  padding: 20px;
+  margin-top: 18px;
+  border: 1px solid #e5e7dc;
+  border-radius: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  line-height: 1.9;
+  max-height: 150px;
+  overflow: auto;
+}
+
+.passage-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10px;
+  color: #818773;
+  margin-top: 10px;
+}
+
+.tip {
+  border-top: 1px solid var(--line);
+  margin-top: 26px;
+  padding-top: 22px;
+}
+
+.tip > span {
+  font: 10px 'IBM Plex Mono', monospace;
+  letter-spacing: 1px;
+  color: #7b8367;
+}
+
+.tip p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+/* Room lists, status badges, empty states, and player avatars */
+
+.rooms-section,
+.racers-section {
+  margin-top: 35px;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.section-heading h2 {
+  margin-top: 7px;
+}
+
+.rooms-list {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.room-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.room-row:last-child {
+  border-bottom: 0;
+}
+
+.room-id {
+  font: 15px 'IBM Plex Mono', monospace;
+  width: 50px;
+  color: #6f775e;
+}
+
+.room-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.room-info > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.status-tag {
+  border-radius: 4px;
+  padding: 5px 9px;
+  font: 10px 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  background: #eff0e9;
+  color: #777d6c;
+}
+
+.status-tag.waiting {
+  color: #59702e;
+  background: #eef3db;
+}
+
+.status-tag.running {
+  color: #336f80;
+  background: #e1f0f4;
+}
+
+.empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--muted);
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+.empty h3 {
+  color: var(--ink);
+}
+
+.empty-flag {
+  display: inline-block;
+  font-size: 45px;
+  color: #849237;
+  margin-bottom: 15px;
+}
+
+.avatar {
+  background: #e8ebdc;
+  color: #5b6a3c;
+  display: inline-grid;
+  place-items: center;
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.avatar.small {
+  width: 27px;
+  height: 27px;
+  font-size: 11px;
+}
+
+/* Race screen heading and live-connection indicator */
+
+.room-heading {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.back {
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.connection {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.connection.disconnected i {
+  background: #bd623f;
+}
+
+.connection.connecting i {
+  background: #a4943a;
+}
+
+/* Animated race track — the cars themselves are drawn in RaceTrack.tsx */
+
+.track {
+  border-radius: 12px;
+  padding: 20px 24px;
+  background: #252d32;
+  color: #d7dcde;
+  overflow: hidden;
+}
+
+.track-top {
+  display: flex;
+  justify-content: space-between;
+  color: #a6b0ae;
+  margin-bottom: 8px;
+}
+
+.track canvas {
+  width: 100%;
+  display: block;
+}
+
+/* WPM, accuracy, progress, and race-status cards */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  margin: 20px 0;
+}
+
+.stats-grid > div {
+  padding: 22px 25px;
+  border-right: 1px solid var(--line);
+}
+
+.stats-grid > div:last-child {
+  border-right: 0;
+}
+
+.stats-grid > div > span {
+  color: #7d846f;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.stats-grid strong {
+  display: block;
+  font: 500 34px 'Space Grotesk', sans-serif;
+  margin-top: 7px;
+}
+
+.stats-grid small {
+  font-size: 15px;
+  color: #85906b;
+}
+
+.stats-grid strong.status-value {
+  font-size: 23px;
+  padding-top: 8px;
+  text-transform: capitalize;
+}
+
+/* Waiting-room and saved-result messages */
+
+.waiting-banner,
+.finish-banner {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  justify-content: space-between;
+  background: #e9eed4;
+  border: 1px solid #d7dfb8;
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 20px 0;
+}
+
+.waiting-banner p,
+.finish-banner p {
+  margin: 5px 0 0;
+  color: #68734f;
+  font-size: 12px;
+}
+
+.finish-banner {
+  justify-content: flex-start;
+  background: #e4f0e2;
+  border-color: #c9dfc7;
+}
+
+.finish-icon {
+  font-size: 34px;
+  color: #557742;
+}
+
+/* Typing passage, character highlighting, and typing input */
+
+.typing-panel {
+  margin-top: 24px;
+}
+
+.typing-passage {
+  font: 400 clamp(18px, 2vw, 24px)/1.85 'IBM Plex Mono', monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #7b8177;
+  padding: 8px 0 18px;
+}
+
+.char-correct {
+  color: #333c27;
+  background: #e9efcf;
+}
+
+.char-wrong {
+  color: #a83a2a;
+  background: #f9dcd0;
+  text-decoration: underline;
+}
+
+.char-cursor {
+  border-left: 2px solid #7d8d2c;
+  margin-left: -2px;
+}
+
+/* The paragraph determines the height of the typing area. */
+.typing-surface {
+  position: relative;
+  border-radius: 7px;
+}
+
+/* Show keyboard focus around the whole paragraph. */
+.typing-surface:focus-within {
+  outline: 2px solid #7a8b1c;
+  outline-offset: 6px;
+}
+
+/* The visible paragraph sits beneath the input. */
+.typing-surface .typing-passage {
+  pointer-events: none;
+}
+
+/* This input receives typing but is visually transparent. */
+.typing-surface textarea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 0 18px;
+  border: 0;
+  resize: none;
+  overflow: hidden;
+  opacity: 0;
+  cursor: text;
+  font: 400 clamp(18px, 2vw, 24px)/1.85
+    'IBM Plex Mono', monospace;
+}
+
+/* Hide the visual cursor when the typing area isn't focused. */
+.typing-surface:not(:focus-within) .char-cursor {
+  border-left-color: transparent;
+}
+
+/* Participant progress bars and monospace text utility */
+
+.racers-section h2 {
+  margin-bottom: 18px;
+}
+
+progress {
+  accent-color: #a6ba49;
+  width: 150px;
+  height: 8px;
+}
+
+.mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+
+/* Leaderboard table, ranks, and pagination */
+
+.leaderboard-panel {
+  padding-bottom: 18px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+}
+
+th {
+  color: #858b7d;
+  font: 10px 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+td {
+  padding: 21px 16px;
+  border-bottom: 1px solid #eceee5;
+  white-space: nowrap;
+}
+
+.wpm-cell {
+  font: 600 21px 'Space Grotesk', sans-serif;
+  color: #667a26;
+}
+
+.rank {
+  font-family: 'IBM Plex Mono', monospace;
+  color: #858b7d;
+}
+
+.rank-1 {
+  color: #6f8128;
+  background: #e8efc9;
+  border-radius: 5px;
+  padding: 6px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Accessibility — keyboard shortcut link to the main content */
+
+.skip-link {
+  position: absolute;
+  top: -60px;
+  padding: 12px;
+  background: var(--lime);
+  z-index: 10;
+}
+
+.skip-link:focus {
+  top: 10px;
+}
+
+/* Tablet layout — overrides above apply when the viewport is 850px wide or less. */
+
 @media (max-width: 850px) {
-  .header-caption { display: none; }
-  .site-header { gap: 20px; }
-  .auth-layout { gap: 5%; }
-  .welcome-copy h1 { letter-spacing: -2.5px; }
-  .auth-panel { padding: 25px; }
-  .stats-grid > div { padding: 20px 15px; }
+  .header-caption {
+    display: none;
+  }
+
+  .site-header {
+    gap: 20px;
+  }
+
+  .auth-layout {
+    gap: 5%;
+  }
+
+  .welcome-copy h1 {
+    letter-spacing: -2.5px;
+  }
+
+  .auth-panel {
+    padding: 25px;
+  }
+
+  .stats-grid > div {
+    padding: 20px 15px;
+  }
 }
+
+/* Phone layout — stacks cards and adjusts spacing at 640px or less. */
+
 @media (max-width: 640px) {
-  .app-shell { padding: 0 5%; }
-  .site-header { flex-wrap: wrap; min-height: 110px; padding: 20px 0 0; gap: 5px 15px; }
-  .brand { font-size: 24px; }
-  .brand-icon { width: 29px; height: 29px; font-size: 23px; }
-  nav { order: 3; width: 100%; justify-content: center; gap: 35px; }
-  .nav-item { padding: 16px 0 20px; }
-  .nav-item.active:after { bottom: 10px; }
-  .account-area { margin-left: auto; gap: 10px; }
-  .account-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
-  main { padding-top: 30px; }
-  .auth-layout { grid-template-columns: 1fr; gap: 35px; padding: 0; }
-  .welcome-copy h1 { font-size: 57px; }
-  .welcome-track { margin: 25px 0; }
-  .auth-panel { max-width: none; }
-  .page-heading { align-items: flex-start; flex-direction: column; gap: 15px; }
-  .page-heading h1 { font-size: 35px; }
-  .lobby-grid { grid-template-columns: 1fr; }
-  .panel { padding: 22px; }
-  .room-row { padding: 16px 12px; gap: 10px; flex-wrap: wrap; }
-  .room-id { width: 35px; font-size: 12px; }
-  .room-info { min-width: 100px; }
-  .room-row .button { padding: 9px 12px; }
-  .status-tag { font-size: 8px; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .stats-grid > div { border-bottom: 1px solid var(--line); }
-  .stats-grid > div:nth-child(2) { border-right: 0; }
-  .stats-grid > div:nth-child(n+3) { border-bottom: 0; }
-  .waiting-banner { flex-direction: column; align-items: flex-start; }
-  .track { padding: 17px 12px; }
-  .racers-section progress { width: 100%; }
-  .typing-bottom { flex-direction: column; gap: 6px; }
-  footer { flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; font-size: 8px; }
+  .app-shell {
+    padding: 0 5%;
+  }
+
+  .site-header {
+    flex-wrap: wrap;
+    min-height: 110px;
+    padding: 20px 0 0;
+    gap: 5px 15px;
+  }
+
+  .brand {
+    font-size: 24px;
+  }
+
+  .brand-icon {
+    width: 29px;
+    height: 29px;
+    font-size: 23px;
+  }
+
+  nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 35px;
+  }
+
+  .nav-item {
+    padding: 16px 0 20px;
+  }
+
+  .nav-item.active:after {
+    bottom: 10px;
+  }
+
+  .account-area {
+    margin-left: auto;
+    gap: 10px;
+  }
+
+  .account-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  main {
+    padding-top: 30px;
+  }
+
+  .auth-layout {
+    grid-template-columns: 1fr;
+    gap: 35px;
+    padding: 0;
+  }
+
+  .welcome-copy h1 {
+    font-size: 57px;
+  }
+
+  .welcome-track {
+    margin: 25px 0;
+  }
+
+  .auth-panel {
+    max-width: none;
+  }
+
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .page-heading h1 {
+    font-size: 35px;
+  }
+
+  .lobby-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 22px;
+  }
+
+  .room-row {
+    padding: 16px 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .room-id {
+    width: 35px;
+    font-size: 12px;
+  }
+
+  .room-info {
+    min-width: 100px;
+  }
+
+  .room-row .button {
+    padding: 9px 12px;
+  }
+
+  .status-tag {
+    font-size: 8px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-grid > div {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .stats-grid > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .stats-grid > div:nth-child(n+3) {
+    border-bottom: 0;
+  }
+
+  .waiting-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .track {
+    padding: 17px 12px;
+  }
+
+  .racers-section progress {
+    width: 100%;
+  }
+
+  footer {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 12px;
+    font-size: 8px;
+  }
 }
-@media (prefers-reduced-motion: reduce) { *, *:before, *:after { scroll-behavior: auto !important; transition: none !important; } }
+
+/* Accessibility — remove CSS transitions when reduced motion is requested.
+   Canvas animation handles this preference separately in RaceTrack.tsx. */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

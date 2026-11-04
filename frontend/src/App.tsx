@@ -16,6 +16,5 @@ export default function App() {
       <div className="account-area">{user ? <><span className="account-name"><span className="avatar small">{user.username.charAt(0).toUpperCase()}</span>{user.username}</span><button className="text-button muted" onClick={() => { signOut(); setRaceId(null); }}>Sign out</button></> : <span className="header-caption">A little practice. A lot of pace.</span>}</div>
     </header>
     <main id="main">{checking ? <div className="empty" role="status">Checking your account…</div> : tab === 'leaderboard' ? <Leaderboard /> : !user ? <AuthForm /> : raceId ? <RaceRoom key={raceId} raceId={raceId} onBack={() => setRaceId(null)} /> : <Lobby onEnter={setRaceId} />}</main>
-    <footer><span>TYPEWAY <span className="footer-divider">/</span> BUILT FOR THE NEXT PERSONAL BEST</span><span>Accuracy first. Speed follows. ↗</span></footer>
   </div>;
 }

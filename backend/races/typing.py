@@ -22,9 +22,9 @@ def typing_metrics(target, typed):
         "typed_characters": len(typed),
         "correct_characters": correct,
         "correct_prefix": prefix,
-        "progress": round(prefix / len(target) * 100, 2) if target else 0,
+        "progress": round(len(typed) / len(target) * 100, 2) if target else 0,
         "accuracy": round(correct / len(typed) * 100, 2) if typed else 100,
-        "complete": bool(target) and typed == target,
+        "complete": bool(target) and len(typed) == len(target),
     }
 
 

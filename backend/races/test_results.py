@@ -40,22 +40,22 @@ class SavedResultTests(TestCase):
         with patch("races.services.timezone.now", return_value=self.finish_time):
             return update_typing(race_id=self.race.pk, player_id=(player or self.player).pk, text=text)
 
-    def test_only_exact_match_saves_result_using_server_elapsed_time(self):
+    def test_full_length_input_saves_result_with_errors_using_server_elapsed_time(self):
         wrong = "x" + self.paragraph.text[1:]
-        progress = self.submit(wrong)
+        progress = self.submit(wrong[:5])
         self.assertFalse(progress["complete"])
         self.entry.refresh_from_db()
         self.assertIsNone(self.entry.finished_at)
         self.assertIsNone(self.entry.wpm)
-        result = self.submit(self.paragraph.text)
+        result = self.submit(wrong)
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.finished_at, self.finish_time)
         self.assertEqual(self.entry.elapsed_seconds, Decimal("60.000000"))
-        self.assertEqual(self.entry.wpm, calculate_wpm(len(self.paragraph.text), 60))
+        self.assertEqual(self.entry.wpm, calculate_wpm(len(self.paragraph.text) - 1, 60))
         self.assertEqual(result["wpm"], float(self.entry.wpm))
-        self.assertEqual(result["accuracy"], 100)
+        self.assertLess(result["accuracy"], 100)
         self.race.refresh_from_db()
-        self.assertEqual(self.race.status, Race.Status.RUNNING)
+        self.assertEqual(self.race.status, Race.Status.FINISHED)
 
     def test_result_cannot_be_resubmitted_or_changed(self):
         self.submit(self.paragraph.text)
@@ -67,12 +67,20 @@ class SavedResultTests(TestCase):
         self.entry.refresh_from_db()
         self.assertEqual((self.entry.finished_at, self.entry.wpm, self.entry.revision), saved)
 
-    def test_all_participants_finishing_closes_race(self):
+    def test_first_finisher_ends_race_for_other_players(self):
         self.submit(self.paragraph.text)
-        self.submit(self.paragraph.text, player=self.other)
         self.race.refresh_from_db()
         self.assertEqual(self.race.status, Race.Status.FINISHED)
-        self.assertEqual(self.race.participants.filter(finished_at__isnull=False).count(), 2)
+
+        for text in ["hello", self.paragraph.text]:
+            with self.assertRaises(RaceConflict):
+                self.submit(text, player=self.other)
+
+        self.other_entry.refresh_from_db()
+        self.assertIsNone(self.other_entry.finished_at)
+        self.assertIsNone(self.other_entry.wpm)
+        self.assertEqual(self.other_entry.revision, 0)
+        self.assertEqual(self.race.participants.filter(finished_at__isnull=False).count(), 1)
 
     def test_future_start_time_cannot_produce_a_score(self):
         Race.objects.filter(pk=self.race.pk).update(started_at=self.finish_time + timedelta(seconds=5))

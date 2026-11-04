@@ -8,13 +8,13 @@ from .typing import typing_metrics, text_difference
 
 
 class TextComparisonTests(SimpleTestCase):
-    def test_mistake_stops_progress_but_accuracy_counts_all_matches(self):
+    def test_mistakes_reduce_accuracy_without_stopping_progress(self):
         metrics = typing_metrics("hello", "hexlo")
         self.assertEqual(metrics["correct_prefix"], 2)
         self.assertEqual(metrics["correct_characters"], 4)
-        self.assertEqual(metrics["progress"], 40)
+        self.assertEqual(metrics["progress"], 100)
         self.assertEqual(metrics["accuracy"], 80)
-        self.assertFalse(metrics["complete"])
+        self.assertTrue(metrics["complete"])
 
     def test_empty_and_complete_buffers(self):
         self.assertEqual(typing_metrics("hello", "")["progress"], 0)
@@ -51,7 +51,7 @@ class TypingServiceTests(TestCase):
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.revision, 0)
 
-    def test_start_freezes_text_and_typing_tracks_corrections(self):
+    def test_start_freezes_text_and_forward_typing_preserves_mistakes(self):
         start_race(race_id=self.race.pk, player=self.player)
         original = self.paragraph.text
         self.paragraph.text = "An entirely different passage"
@@ -59,11 +59,10 @@ class TypingServiceTests(TestCase):
         first = self.update("hexlo")
         self.assertEqual(first["correct_prefix"], 2)
         self.assertEqual(first["accuracy"], 80)
-        corrected = self.update("hello")
-        self.assertEqual(corrected["correct_prefix"], 5)
-        self.assertEqual(corrected["revision"], 2)
-        self.assertEqual(corrected["difference"], {"start": 2, "delete_count": 3, "insert": "llo"})
-        final = self.update(original)
+        final = self.update("hexlo" + original[5:])
+        self.assertEqual(final["revision"], 2)
+        self.assertEqual(final["difference"], {"start": 5, "delete_count": 0, "insert": original[5:]})
+        self.assertLess(final["accuracy"], 100)
         self.assertEqual(final["progress"], 100)
         self.assertTrue(final["complete"])
         self.race.refresh_from_db()
@@ -73,14 +72,16 @@ class TypingServiceTests(TestCase):
         self.assertIsNotNone(self.entry.finished_at)
         self.assertIsNotNone(self.entry.wpm)
 
-    def test_backspace_and_clear_are_saved(self):
+    def test_backspace_clear_and_earlier_edits_are_rejected(self):
         start_race(race_id=self.race.pk, player=self.player)
         self.update("hello")
-        self.assertEqual(self.update("hel")["correct_prefix"], 3)
-        self.assertEqual(self.update("")["progress"], 0)
+        for changed in ["hel", "", "hexlo", "xhello", "hexlo world"]:
+            with self.assertRaises(ValidationError):
+                self.update(changed)
         self.entry.refresh_from_db()
-        self.assertEqual(self.entry.typed_text, "")
-        self.assertEqual(self.entry.revision, 3)
+        self.assertEqual(self.entry.typed_text, "hello")
+        self.assertEqual(self.entry.revision, 1)
+        self.assertEqual(self.update("hello world")["typed_characters"], 11)
 
     def test_invalid_text_and_nonparticipant_cannot_change_progress(self):
         start_race(race_id=self.race.pk, player=self.player)

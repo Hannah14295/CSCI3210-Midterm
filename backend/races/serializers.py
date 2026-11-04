@@ -27,7 +27,7 @@ class RaceParticipantSerializer(serializers.ModelSerializer):
         elapsed = (end - race.started_at).total_seconds() if race.started_at else 0
         metrics["wpm"] = float(
             participant.wpm if participant.wpm is not None
-            else calculate_wpm(metrics["correct_prefix"], elapsed)
+            else calculate_wpm(metrics["correct_characters"], elapsed)
         )
         return metrics
 

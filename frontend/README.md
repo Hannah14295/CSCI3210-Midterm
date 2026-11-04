@@ -90,10 +90,13 @@ the user is signed into admin as Hannah while playing as another account.
 - Refresh returns to the lobby, where recent rooms let you reopen your race.
 - Reconnection restores accepted server input, so a pending unsent keystroke can
   be lost on disconnect. The UI disables typing until reconnected.
-- A disconnected unfinished participant currently keeps the race Running; they
-  can return to finish. There is no race timeout/abandonment yet.
+- The first finisher ends the race, including for disconnected participants.
+  If nobody finishes, there is no race timeout/abandonment yet.
 - Progress and accuracy are server values; highlight colors are an immediate
-  browser preview. Accuracy measures the current buffer, not lifetime mistakes.
+  browser preview. Input is forward-only: Backspace, Delete, undoing previous
+  characters, and moving backward to edit are blocked. Django also rejects edits
+  to previously saved characters. Players finish at the paragraph's length;
+  mistakes lower accuracy and WPM rather than preventing completion.
 - Font downloads use Google Fonts, with system fonts as fallback if offline.
 - This proxy applies to the development server, not the built static files.
   Deployment needs same-origin API/WebSocket routing and shared Channels storage

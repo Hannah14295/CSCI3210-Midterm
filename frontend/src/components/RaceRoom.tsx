@@ -6,11 +6,51 @@ import { useRace } from '../hooks/useRace';
 import { Notice } from './Notice';
 import { RaceTrack } from './RaceTrack';
 
-const Passage = memo(function Passage({ target, text }: { target: string; text: string }) {
+const Passage = memo(function Passage({
+  target,
+  text,
+  cursor,
+}: {
+  target: string;
+  text: string;
+  cursor: number | null;
+}) {
+  const characters = Array.from(target);
   const typed = Array.from(text);
-  return <div className="typing-passage" aria-label={`Passage: ${target}`}>{Array.from(target).map((character, index) =>
-    <span key={index} aria-hidden="true" className={`${index < typed.length ? character === typed[index] ? 'char-correct' : 'char-wrong' : ''} ${index === typed.length ? 'char-cursor' : ''}`}>{character}</span>,
-  )}</div>;
+  const cursorPosition = cursor ?? typed.length;
+
+  return (
+    <div
+      className="typing-passage"
+      aria-label={`Passage: ${target}`}
+    >
+      {characters.map((character, index) => {
+        let className = '';
+
+        if (index < typed.length) {
+          className = character === typed[index]
+            ? 'char-correct'
+            : 'char-wrong';
+        }
+
+        if (index === cursorPosition) {
+          className += ' char-cursor';
+        }
+
+        return (
+          <span key={index} aria-hidden="true" className={className}>
+            {character}
+          </span>
+        );
+      })}
+
+      {cursorPosition === characters.length && (
+        <span className="char-cursor" aria-hidden="true">
+          {'\u200b'}
+        </span>
+      )}
+    </div>
+  );
 });
 
 export function RaceRoom({ raceId, onBack }: { raceId: number; onBack: () => void }) {
@@ -25,6 +65,7 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
   const [actionError, setActionError] = useState('');
   const [copied, setCopied] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
+  const [caret, setCaret] = useState<number | null>(null);
   const own = race?.participants.find(entry => entry.player.id === playerId);
   const finished = Boolean(own?.finished_at);
   const canType = connection === 'connected' && race?.status === 'running' && Boolean(race.started_at) && !finished;
@@ -55,14 +96,70 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
       {race.status === 'waiting' && <div className="waiting-banner"><div><strong>Everyone on the grid?</strong><p>{race.host.id === playerId ? 'Share the race ID, wait for your friends, then start when you’re ready.' : `Waiting for ${race.host.username} to start. Your input will unlock automatically.`}</p></div>{race.host.id === playerId && <button className="button primary" disabled={busy || connection !== 'connected'} onClick={() => void start()}>{busy ? 'Starting…' : 'Start race →'}</button>}</div>}
       {finished && <div className="finish-banner" role="status"><span className="finish-icon">⚑</span><div><strong>Result saved. Nice run.</strong><p>{own?.wpm?.toFixed(2)} WPM in {own?.elapsed_seconds?.toFixed(2)} seconds. Your result is on the leaderboard.</p></div></div>}
       {race.status === 'running' && !race.started_at && <Notice message="This race was manually marked Running without a start time. Create a fresh room through the lobby." />}
-      <section className="panel typing-panel"><div className="section-heading"><span className="eyebrow">THE PASSAGE</span><span className="muted">{Array.from(race.paragraph_text).length} characters</span></div>
-        <Passage target={race.paragraph_text} text={text} />
-        <label htmlFor="race-input">Your typing</label>
-        <textarea ref={input} id="race-input" value={text} disabled={!canType} maxLength={race.paragraph_text.length} onChange={event => updateText(event.target.value)} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" placeholder={race.status === 'waiting' ? 'Your input unlocks when the host starts…' : finished ? 'Your result is saved.' : 'Type the passage here…'} aria-describedby="typing-tip" />
-        <div className="typing-bottom"><span id="typing-tip">Correct mistakes to move forward. Match spaces and punctuation.</span><span>{Array.from(text).length} / {Array.from(race.paragraph_text).length}</span></div>
+      <section className="panel typing-panel">
+        <div className="section-heading">
+          <span className="eyebrow">THE PASSAGE</span>
+          <span className="muted">
+            {Array.from(text).length}
+            {' / '}
+            {Array.from(race.paragraph_text).length} characters
+          </span>
+        </div>
+
+        <div className="typing-surface">
+          <Passage
+            target={race.paragraph_text}
+            text={text}
+            cursor={caret}
+          />
+
+          <textarea
+            ref={input}
+            id="race-input"
+            aria-label="Type the displayed passage"
+            aria-description="Type forward only. Backspace and earlier edits are disabled."
+            value={text}
+            disabled={!canType}
+            maxLength={race.paragraph_text.length}
+            onKeyDown={event => {
+              const blockedKeys = [
+                'Backspace',
+                'Delete',
+                'ArrowLeft',
+                'ArrowRight',
+                'ArrowUp',
+                'ArrowDown',
+                'Home',
+                'End',
+              ];
+
+              if (blockedKeys.includes(event.key)) {
+                event.preventDefault();
+              }
+            }}
+            onChange={event => {
+              const nextText = event.target.value;
+
+              // Previously entered characters must stay exactly as they were.
+              if (nextText.startsWith(text)) {
+                updateText(nextText);
+                setCaret(Array.from(nextText).length);
+              }
+            }}
+            onSelect={event => {
+              const field = event.currentTarget;
+              const end = field.value.length;
+
+              field.setSelectionRange(end, end);
+              setCaret(Array.from(field.value).length);
+            }}
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+          />
+        </div>
       </section>
-      <section className="racers-section"><h2>On the track</h2><div className="rooms-list">{race.participants.map(entry => <div className="room-row" key={entry.id}><span className="avatar">{entry.player.username.charAt(0).toUpperCase()}</span><div className="room-info"><strong>{entry.player.username}{entry.player.id === playerId ? ' (you)' : ''}</strong><span>{entry.finished_at ? 'Finished' : `${entry.metrics.progress.toFixed(0)}% complete`}</span></div><span className="mono">{entry.metrics.wpm.toFixed(1)} WPM</span><progress aria-label={`${entry.player.username} progress`} value={entry.metrics.progress} max={100} /></div>)}</div></section>
-      <p className="input-help">Accuracy describes your current text. WPM uses five characters per word and the shared server start time.</p>
     </>}
   </>;
 }
