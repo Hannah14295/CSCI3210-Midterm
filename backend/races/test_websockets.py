@@ -6,6 +6,7 @@ from rest_framework.authtoken.models import Token
 
 from config.asgi import application
 from .models import Paragraph, Race, RaceParticipant
+from .services import start_race
 
 
 class RaceWebSocketTests(TransactionTestCase):
@@ -147,7 +148,54 @@ class RaceWebSocketTests(TransactionTestCase):
         socket = self.communicator()
         try:
             await self.authenticate(socket, self.token)
-            await socket.send_to(text_data="x" * 4097)
+            await socket.send_to(text_data="x" * 16385)
             self.assertEqual((await socket.receive_output())["code"], 1009)
+        finally:
+            await socket.disconnect()
+
+    async def test_start_and_server_checked_progress_reach_both_tabs_and_reconnect(self):
+        first = self.communicator()
+        second = self.communicator()
+        reconnected = None
+        try:
+            await self.authenticate(first, self.token)
+            await self.authenticate(second, self.other_token)
+            await database_sync_to_async(start_race)(race_id=self.race.pk, player=self.player)
+            for socket in [first, second]:
+                event = await socket.receive_json_from()
+                self.assertEqual(event["type"], "race.updated")
+                self.assertEqual(event["race"]["status"], "running")
+                self.assertIsNotNone(event["race"]["started_at"])
+            await first.send_json_to({"type": "typing.update", "text": "A practixe", "progress": 100, "player_id": self.other.pk})
+            event = await first.receive_json_from()
+            self.assertEqual(event, await second.receive_json_from())
+            self.assertEqual(event["type"], "progress.updated")
+            self.assertEqual(event["player"]["id"], self.player.pk)
+            self.assertEqual(event["correct_prefix"], 8)
+            self.assertLess(event["progress"], 100)
+            self.assertFalse(event["complete"])
+            reconnected = self.communicator()
+            initial = await self.authenticate(reconnected, self.token)
+            self.assertEqual(initial["your_text"], "A practixe")
+            self.assertEqual(initial["race"]["paragraph_text"], "A practice passage for live races.")
+            self.assertEqual(initial["race"]["participants"][0]["revision"], 1)
+        finally:
+            await first.disconnect()
+            await second.disconnect()
+            if reconnected:
+                await reconnected.disconnect()
+
+    async def test_typing_before_start_returns_error_and_saves_nothing(self):
+        socket = self.communicator()
+        try:
+            await self.authenticate(socket, self.token)
+            await socket.send_json_to({"type": "typing.update", "text": "A"})
+            error = await socket.receive_json_from()
+            self.assertEqual(error["type"], "error")
+            self.assertEqual(error["status"], 409)
+            revision = await database_sync_to_async(
+                lambda: RaceParticipant.objects.get(race=self.race, player=self.player).revision
+            )()
+            self.assertEqual(revision, 0)
         finally:
             await socket.disconnect()

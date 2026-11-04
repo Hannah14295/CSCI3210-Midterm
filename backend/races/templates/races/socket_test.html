@@ -3,23 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Race WebSocket test</title>
+  <title>Live typing test</title>
   <style>
     body { font: 1rem/1.6 system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
     label { display: block; margin-top: 1rem; }
     input { box-sizing: border-box; width: 100%; padding: .6rem; font: inherit; }
     button { font: inherit; padding: .5rem .9rem; margin: .8rem .4rem 0 0; }
     pre { padding: 1rem; background: #f0f3f7; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 25rem; overflow: auto; }
+    textarea { box-sizing: border-box; width: 100%; min-height: 7rem; padding: .6rem; font: inherit; }
+    #passage { white-space: pre-wrap; padding: 1rem; background: #f0f3f7; }
+    .correct { background: #c9f2d4; color: #163c23; }
+    .incorrect { background: #ffd9d9; color: #7b1919; text-decoration: underline; }
+    progress { width: 100%; }
   </style>
 </head>
 <body>
-  <h1>Race WebSocket test</h1>
-  <p>This developer page tests live messages. It is not the typing game.</p>
+  <h1>Live typing test</h1>
+  <p>This developer page tests server-checked typing progress. WPM and saved finish results come next.</p>
   <ol>
     <li>Sign into <a href="/admin/">admin</a> in this browser.</li>
     <li>Create or join a race through <a href="/api/races/">the race API</a>. Your account must be a participant.</li>
     <li>Open this page in two tabs, enter the same race ID in both, and connect.</li>
-    <li>Send a message in one tab. Both tabs should receive it.</li>
+    <li>Start the waiting race through its API start action, then type below. Both tabs should show your progress.</li>
   </ol>
   <p>For a regular player's API token, use a separate private browser window without an admin login and paste the token below. A signed-in browser uses its admin session.</p>
   <form id="connect-form">
@@ -28,16 +33,69 @@
     <button id="connect" type="submit">Connect</button><button id="disconnect" type="button" disabled>Disconnect</button>
   </form>
   <p id="status" role="status">Disconnected</p>
+  <h2>Typing practice</h2>
+  <p id="race-status">Connect to load the race.</p>
+  <p><a id="start-link" hidden target="_blank" rel="noopener">Open this race's start API, then click POST (host only)</a></p>
+  <div id="passage" aria-label="Paragraph to type"></div>
+  <label for="typing">Type the paragraph exactly, including spaces and punctuation</label>
+  <textarea id="typing" disabled spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="typing-note"></textarea>
+  <p id="typing-note">Progress counts the correct beginning of the passage. Accuracy measures your current text, not mistakes already corrected.</p>
+  <h2>Player progress</h2>
+  <div id="players"></div>
+  <details><summary>Optional connection-test message</summary>
   <form id="message-form">
     <label for="message">Test message</label><input id="message" maxlength="200" required>
     <button id="send" type="submit" disabled>Send to race</button>
   </form>
+  </details>
   <h2>Messages received</h2>
   <pre id="log" aria-live="polite"></pre>
   <script>
     const byId = id => document.getElementById(id);
     let socket = null;
     let token = '';
+    let race = null;
+    let typingTimer = null;
+    const playerRows = new Map();
+    function paintPassage() {
+      const target = Array.from(race?.paragraph_text || '');
+      const typed = Array.from(byId('typing').value);
+      byId('passage').replaceChildren(...target.map((character, index) => {
+        const span = document.createElement('span');
+        span.textContent = character;
+        if (index < typed.length) span.className = character === typed[index] ? 'correct' : 'incorrect';
+        return span;
+      }));
+    }
+    function showProgress(player, metrics, revision) {
+      const previous = playerRows.get(player.id);
+      if (previous && previous.revision > revision) return;
+      const row = previous?.row || document.createElement('div');
+      const label = document.createElement('p');
+      label.textContent = `${player.username}: ${metrics.progress}% progress, ${metrics.accuracy}% accuracy${metrics.complete ? ' — paragraph matched' : ''}`;
+      const bar = document.createElement('progress');
+      bar.max = 100;
+      bar.value = metrics.progress;
+      bar.setAttribute('aria-label', `${player.username} progress`);
+      row.replaceChildren(label, bar);
+      if (!previous) byId('players').append(row);
+      playerRows.set(player.id, {row, revision});
+    }
+    function showRace(snapshot) {
+      race = snapshot;
+      byId('race-status').textContent = `Race ${race.id}: ${race.status}`;
+      byId('start-link').href = `/api/races/${race.id}/start/`;
+      byId('start-link').hidden = race.status !== 'waiting';
+      byId('typing').disabled = race.status !== 'running' || !race.started_at;
+      byId('typing').maxLength = race.paragraph_text.length;
+      if (race.status === 'running' && !race.started_at) log('This older race was manually set to Running. Create a new waiting race and start it through the API.');
+      const ids = new Set(race.participants.map(entry => entry.player.id));
+      for (const [id, entry] of playerRows) {
+        if (!ids.has(id)) { entry.row.remove(); playerRows.delete(id); }
+      }
+      for (const entry of race.participants) showProgress(entry.player, entry.metrics, entry.revision);
+      paintPassage();
+    }
     function log(message) {
       byId('log').textContent = (byId('log').textContent + message + '\n').slice(-20000);
       byId('log').scrollTop = byId('log').scrollHeight;
@@ -46,6 +104,11 @@
       event.preventDefault();
       if (socket && socket.readyState < WebSocket.CLOSING) return;
       token = byId('token').value.trim();
+      clearTimeout(typingTimer);
+      typingTimer = null;
+      playerRows.clear();
+      byId('players').replaceChildren();
+      byId('typing').disabled = true;
       byId('token').value = '';
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
       socket = new WebSocket(`${protocol}//${location.host}/ws/races/${byId('race').value}/`);
@@ -68,7 +131,11 @@
           token = '';
           byId('status').textContent = `Connected as ${data.player.username} to race ${data.race_id}`;
           byId('send').disabled = false;
+          byId('typing').value = data.your_text;
+          showRace(data.race);
         }
+        if (data.type === 'race.updated') showRace(data.race);
+        if (data.type === 'progress.updated') showProgress(data.player, data, data.revision);
         log(JSON.stringify(data, null, 2));
       });
       socket.addEventListener('close', event => {
@@ -77,11 +144,24 @@
         byId('connect').disabled = false;
         byId('disconnect').disabled = true;
         byId('send').disabled = true;
+        byId('typing').disabled = true;
+        clearTimeout(typingTimer);
         log('Closed. 4401: login/token required; 4403: join this race first; 4429: sending too fast.');
       });
       socket.addEventListener('error', () => log('Connection error. Check the server is running with Daphne and restart it after installation.'));
     });
     byId('disconnect').addEventListener('click', () => socket?.close());
+    byId('typing').addEventListener('input', () => {
+      paintPassage();
+      if (typingTimer) return;
+      // Send at most four times per second, including while typing continuously.
+      typingTimer = setTimeout(() => {
+        typingTimer = null;
+        if (socket?.readyState === WebSocket.OPEN && !byId('typing').disabled) {
+          socket.send(JSON.stringify({type: 'typing.update', text: byId('typing').value}));
+        }
+      }, 250);
+    });
     byId('message-form').addEventListener('submit', event => {
       event.preventDefault();
       if (socket?.readyState === WebSocket.OPEN) {
@@ -89,7 +169,7 @@
         byId('message').value = '';
       }
     });
-    window.addEventListener('pagehide', () => socket?.close());
+    window.addEventListener('pagehide', () => { clearTimeout(typingTimer); socket?.close(); });
   </script>
 </body>
 </html>

@@ -47,6 +47,7 @@ class Race(models.Model):
         default=Status.WAITING,
     )
     started_at = models.DateTimeField(null=True, blank=True)
+    race_text = models.TextField(max_length=2000, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -70,6 +71,8 @@ class RaceParticipant(models.Model):
         related_name="race_entries",
     )
     joined_at = models.DateTimeField(auto_now_add=True)
+    typed_text = models.TextField(max_length=2000, blank=True, default="")
+    revision = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["joined_at", "id"]

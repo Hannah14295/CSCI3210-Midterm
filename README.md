@@ -250,8 +250,7 @@ Run all current tests:
 
 ## Next milestone
 
-Add validated typing progress, scoring, and leaderboard APIs over the live
-transport described below.
+Add WPM calculation, saved finish results, and a historical leaderboard.
 
 ## Milestone 5: Race APIs
 
@@ -361,8 +360,8 @@ WebSocket routing changes how messages travel, not the saved table structure.
 6. Disconnect one tab. The other remains usable. Reconnect to receive new messages;
    earlier messages are not stored or replayed.
 
-The demo page is only available while DEBUG is True. It tests live messaging,
-not typing scores. Two tabs signed into the same account are two connections
+The demo page is only available while DEBUG is True. It now also tests validated
+typing progress (see milestone 7 below), but not WPM scores. Two tabs signed into the same account are two connections
 belonging to one player, not two different participants. To test two different
 players, use another browser/private window and a different registered account's
 token. That account must first join the same race using its authenticated API.
@@ -395,11 +394,11 @@ with type, race ID, player (id and username), and text. The backend supplies rac
 and player identity; client-supplied identities and score fields are ignored.
 Different races use different broadcast groups. Demo messages can be sent in
 any race status and do not affect gameplay, save progress, or calculate WPM.
-Create/join/start HTTP actions do not yet broadcast live state changes.
+Join/start HTTP actions now broadcast `race.updated` after committing their changes.
 
 Membership, active-account status, and token validity are rechecked when sending
 or delivering room messages. Invalid JSON and invalid message shapes return an
-error packet. Frames over 4096 characters close with code 1009; binary frames
+error packet. Frames over 16384 characters close with code 1009; binary frames
 close with 1003. Each connection permits up to 10 incoming messages per second
 (including authentication) before closing with code 4429. Other close codes:
 
@@ -425,6 +424,74 @@ than one process needs a shared layer such as Redis; in-memory delivery cannot
 communicate between processes. Use HTTPS/WSS when hosting outside localhost.
 
 Reference: https://channels.readthedocs.io/en/stable/topics/channel_layers.html
+
+## Milestone 7: Validated typing progress
+
+Use a **new waiting race** created through the API, connect both tabs on
+http://127.0.0.1:8000/dev/socket/, then open the race's start link and click POST
+as its host. The start broadcast enables typing in both connected tabs. Type
+in one tab: the passage highlights matches/mistakes locally, and both tabs show
+the backend's progress and accuracy. Two tabs for the same account share one
+participant's progress, not two independent competitors.
+
+`start_race` now copies the paragraph into `Race.race_text`. This fixes the target
+for the race, so editing the original Paragraph afterward won't change an active
+race. Older running races with no saved copy need to be replaced with a new race
+for this demonstration. Manually changing status in admin does not run start logic.
+
+The browser sends its latest complete input buffer at most every 250 milliseconds:
+
+```json
+{"type":"typing.update","text":"The small"}
+```
+
+`consumers.py` identifies the sender and calls `services.update_typing`. That
+service verifies membership, running state, the server start timestamp, and input
+length/type. The buffer may be empty (clearing/backspacing) but cannot exceed the
+target length or 2000 characters. It updates the participant in a transaction
+and broadcasts `progress.updated` only after saving successfully.
+
+The outgoing event contains player identity, race ID, revision, and:
+
+- `correct_prefix`: number of consecutive correct characters from the beginning.
+- `progress`: correct_prefix / paragraph length * 100, rounded to two decimals.
+- `correct_characters`: matching characters at the same positions in the input.
+- `accuracy`: correct_characters / current input length * 100. Empty input is
+  defined as 100% accuracy with 0% progress. This is current-buffer accuracy,
+  not a record of all historical keystrokes or corrected mistakes.
+- `complete`: true only when the entire input exactly matches the saved target.
+- `difference`: a suffix replacement (`start`, `delete_count`, `insert`) comparing
+  the old and new buffer. The server computes this rather than trusting a delta.
+
+For target `hello` and input `hexlo`, correct_prefix is 2, progress is 40%, and
+accuracy is 80% (four of five positions match). Correcting it to `hello` gives
+100% progress and accuracy. This milestone does not finish the race or save a
+WPM result; full matching is reported for the next scoring milestone to use.
+
+`typed_text` and `revision` are persisted on RaceParticipant. Every accepted update
+increments revision so the browser can ignore older progress events delivered
+out of order. A reconnect receives the latest race snapshot and `your_text` to
+restore its input. Other players' full buffers are not included in snapshots,
+but change events include the string differences required for this assignment.
+
+Start/join broadcast a `race.updated` snapshot so connected tabs see the updated
+status, shared paragraph, and participants without polling. Progress broadcasts
+stay within the race group, with access checked on delivery. Highlighting is a
+local preview; displayed progress statistics come from the backend.
+
+Files to inspect:
+
+- `races/typing.py`: plain Python text comparison and difference functions.
+- `races/services.py`: rules and database changes for typing updates and start.
+- `races/events.py`: race snapshots and group broadcasting.
+- `races/consumers.py`: receives packets and calls the service.
+- `races/serializers.py`: includes participant metrics and the race paragraph.
+- `races/templates/races/socket_test.html`: the test input, highlighting, and bars.
+- `races/migrations/0005_...py`: adds race_text, typed_text, and revision fields.
+
+An authenticated client can still paste or programmatically submit text. Comparing
+text and using server identity is not proof that a human physically typed it;
+this milestone is input validation, not an anti-cheat system.
 
 Useful official references:
 

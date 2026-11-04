@@ -1,4 +1,4 @@
-"""Authenticated race-room transport; demo messages are not typing scores."""
+"""Authenticated race-room transport and server-validated typing updates."""
 import asyncio
 import json
 from collections import deque
@@ -7,8 +7,11 @@ from time import monotonic
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import APIException
 
 from .models import RaceParticipant
+from .events import race_snapshot
+from .services import update_typing
 
 
 class RaceConsumer(AsyncJsonWebsocketConsumer):
@@ -43,7 +46,7 @@ class RaceConsumer(AsyncJsonWebsocketConsumer):
         if text_data is None:
             await self.close(code=1003)
             return
-        if len(text_data) > 4096:
+        if len(text_data) > 16384:
             await self.close(code=1009)
             return
         now = monotonic()
@@ -84,8 +87,16 @@ class RaceConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4403)
             return
         text = content.get("text")
+        if content.get("type") == "typing.update":
+            try:
+                await database_sync_to_async(update_typing)(
+                    race_id=self.race_id, player_id=self.player_id, text=text,
+                )
+            except APIException as error:
+                await self.send_json({"type": "error", "status": error.status_code, "detail": error.detail})
+            return
         if content.get("type") != "demo.message" or not isinstance(text, str) or not text.strip() or len(text) > 200:
-            await self.send_json({"type": "error", "detail": "Send demo.message with 1-200 characters of text."})
+            await self.send_json({"type": "error", "detail": "Send typing.update, or demo.message with 1-200 characters of text."})
             return
         # Never trust client-supplied player IDs, room IDs, or score fields.
         await self.channel_layer.group_send(self.room, {
@@ -109,6 +120,8 @@ class RaceConsumer(AsyncJsonWebsocketConsumer):
             "type": "connected",
             "race_id": self.race_id,
             "player": {"id": self.player_id, "username": access["player__username"]},
+            "race": await database_sync_to_async(race_snapshot)(self.race_id),
+            "your_text": await self.saved_text(),
         })
 
     async def race_message(self, event):
@@ -120,6 +133,10 @@ class RaceConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def token_owner(self, key):
         return Token.objects.filter(key=key, user__is_active=True).values_list("user_id", flat=True).first()
+
+    @database_sync_to_async
+    def saved_text(self):
+        return RaceParticipant.objects.get(race_id=self.race_id, player_id=self.player_id).typed_text
 
     @database_sync_to_async
     def access(self):
