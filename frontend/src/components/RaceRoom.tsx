@@ -6,6 +6,8 @@ import { useRace } from '../hooks/useRace';
 import { Notice } from './Notice';
 import { RaceProgress } from './RaceProgress';
 import { previewTyping } from '../typing';
+import { raceResults } from '../raceResults';
+import { RaceResultsDialog } from './RaceResultsDialog';
 
 const Passage = memo(function Passage({
   target,
@@ -70,6 +72,8 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
   const [caret, setCaret] = useState<number | null>(null);
   const own = race?.participants.find(entry => entry.player.id === playerId);
   const finished = Boolean(own?.finished_at);
+  const results = race ? raceResults(race) : null;
+  const remaining = race?.participants.filter(entry => !entry.finished_at).length || 0;
   const livePreview = connection === 'connected' && race?.status === 'running' && Boolean(race.started_at) && !finished;
   const complete = Boolean(race?.paragraph_text) && Array.from(text).length === Array.from(race?.paragraph_text || '').length;
   const metrics = livePreview && race
@@ -108,10 +112,11 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
         <div><span>{livePreview ? 'WPM · LIVE ESTIMATE' : 'WORDS PER MINUTE'}</span><strong>{(metrics?.wpm || 0).toFixed(1)}<small> WPM</small></strong></div>
         <div><span>ACCURACY</span><strong>{(metrics?.accuracy ?? 100).toFixed(0)}<small>%</small></strong></div>
         <div><span>PROGRESS</span><strong>{(metrics?.progress || 0).toFixed(0)}<small>%</small></strong></div>
-        <div><span>RACE STATUS</span><strong className="status-value">{finished ? 'Finished' : livePreview && complete ? 'Saving result…' : race.status}</strong></div>
+        <div><span>RACE STATUS</span><strong className="status-value">{race.status === 'finished' ? 'Finished' : finished ? 'Waiting for racers' : livePreview && complete ? 'Saving result…' : race.status}</strong></div>
       </div>
       {race.status === 'waiting' && <div className="waiting-banner"><div><strong>Everyone on the grid?</strong><p>{race.host.id === playerId ? 'Share the race ID, wait for your friends, then start when you’re ready.' : `Waiting for ${race.host.username} to start. Your input will unlock automatically.`}</p></div>{race.host.id === playerId && <button className="button primary" disabled={busy || connection !== 'connected'} onClick={() => void start()}>{busy ? 'Starting…' : 'Start race →'}</button>}</div>}
-      {finished && <div className="finish-banner" role="status"><span className="finish-icon">⚑</span><div><strong>Result saved. Nice run.</strong><p>{own?.wpm?.toFixed(2)} WPM in {own?.elapsed_seconds?.toFixed(2)} seconds. Your result is on the leaderboard.</p></div></div>}
+      {finished && <div className="finish-banner" role="status"><span className="finish-icon">⚑</span><div><strong>Result saved. Nice run.</strong><p>{own?.wpm?.toFixed(2)} WPM in {own?.elapsed_seconds?.toFixed(2)} seconds. {race.status === 'running' ? `Waiting for ${remaining} ${remaining === 1 ? 'racer' : 'racers'} to finish.` : 'Everyone has finished.'}</p></div></div>}
+      {results && <RaceResultsDialog results={results} raceId={raceId} playerId={playerId} onBack={onBack} />}
       {race.status === 'running' && !race.started_at && <Notice message="This race was manually marked Running without a start time. Create a fresh room through the lobby." />}
       <section className="panel typing-panel">
         <div className="section-heading">

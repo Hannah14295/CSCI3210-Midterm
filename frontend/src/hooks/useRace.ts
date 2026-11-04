@@ -65,6 +65,7 @@ export function useRace(raceId: number, token: string, playerId: number) {
           entry.player.id !== data.player.id || entry.revision > data.revision ? entry : {
             ...entry, revision: data.revision, metrics: data,
             wpm: data.finished_at ? data.wpm : null,
+            accuracy: data.finished_at ? data.accuracy : null,
             finished_at: data.finished_at,
             elapsed_seconds: data.finished_at ? data.elapsed_seconds : null,
           },

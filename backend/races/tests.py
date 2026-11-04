@@ -11,6 +11,7 @@ from .models import Paragraph, Race, RaceParticipant
 
 class ParagraphAPITests(APITestCase):
     def setUp(self):
+        Paragraph.objects.all().delete()
         self.paragraph = Paragraph.objects.create(
             title="Practice", text="Steady practice builds speed and accuracy."
         )
@@ -44,6 +45,7 @@ class ParagraphAPITests(APITestCase):
 
 class ParagraphAdminTests(TestCase):
     def setUp(self):
+        Paragraph.objects.all().delete()
         self.admin_user = get_user_model().objects.create_superuser(
             username="testadmin", email="admin@example.com", password="test-only-password"
         )

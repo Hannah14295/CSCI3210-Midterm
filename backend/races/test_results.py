@@ -57,7 +57,7 @@ class SavedResultTests(TestCase):
         self.assertLess(result["accuracy"], 100)
         self.assertEqual(self.entry.accuracy, Decimal(str(result["accuracy"])))
         self.race.refresh_from_db()
-        self.assertEqual(self.race.status, Race.Status.FINISHED)
+        self.assertEqual(self.race.status, Race.Status.RUNNING)
 
     def test_result_cannot_be_resubmitted_or_changed(self):
         self.submit(self.paragraph.text)
@@ -69,20 +69,41 @@ class SavedResultTests(TestCase):
         self.entry.refresh_from_db()
         self.assertEqual((self.entry.finished_at, self.entry.wpm, self.entry.accuracy, self.entry.revision), saved)
 
-    def test_first_finisher_ends_race_for_other_players(self):
+    def test_first_finisher_waits_and_other_players_can_finish(self):
+        self.submit(self.paragraph.text)
+        self.race.refresh_from_db()
+        self.assertEqual(self.race.status, Race.Status.RUNNING)
+        self.submit("hello", player=self.other)
+        self.other_entry.refresh_from_db()
+        self.assertIsNone(self.other_entry.finished_at)
+        self.submit(self.paragraph.text, player=self.other)
+        self.race.refresh_from_db()
+        self.other_entry.refresh_from_db()
+        self.assertEqual(self.race.status, Race.Status.FINISHED)
+        self.assertIsNotNone(self.other_entry.wpm)
+        self.assertEqual(self.other_entry.accuracy, Decimal("100.00"))
+        self.assertEqual(self.race.participants.filter(finished_at__isnull=False).count(), 2)
+
+    def test_three_players_wait_for_the_last_finish_and_keep_individual_times(self):
+        third = get_user_model().objects.create_user(username="thirdfinisher")
+        RaceParticipant.objects.create(race=self.race, player=third)
+        self.submit(self.paragraph.text)
+        self.finish_time += timedelta(seconds=10)
+        self.submit("x" + self.paragraph.text[1:], player=self.other)
+        self.race.refresh_from_db()
+        self.assertEqual(self.race.status, Race.Status.RUNNING)
+        self.finish_time += timedelta(seconds=10)
+        self.submit(self.paragraph.text, player=third)
+        self.race.refresh_from_db()
+        self.assertEqual(self.race.status, Race.Status.FINISHED)
+        durations = list(self.race.participants.order_by("finished_at").values_list("elapsed_seconds", flat=True))
+        self.assertEqual(durations, [Decimal(60), Decimal(70), Decimal(80)])
+
+    def test_solo_practice_finishes_when_the_only_player_finishes(self):
+        self.other_entry.delete()
         self.submit(self.paragraph.text)
         self.race.refresh_from_db()
         self.assertEqual(self.race.status, Race.Status.FINISHED)
-
-        for text in ["hello", self.paragraph.text]:
-            with self.assertRaises(RaceConflict):
-                self.submit(text, player=self.other)
-
-        self.other_entry.refresh_from_db()
-        self.assertIsNone(self.other_entry.finished_at)
-        self.assertIsNone(self.other_entry.wpm)
-        self.assertEqual(self.other_entry.revision, 0)
-        self.assertEqual(self.race.participants.filter(finished_at__isnull=False).count(), 1)
 
     def test_future_start_time_cannot_produce_a_score(self):
         Race.objects.filter(pk=self.race.pk).update(started_at=self.finish_time + timedelta(seconds=5))

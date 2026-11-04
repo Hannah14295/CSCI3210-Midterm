@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../auth';
 import { describeError } from '../api';
@@ -10,13 +10,7 @@ export function AuthForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [slow, setSlow] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => {
-    if (!busy) { setSlow(false); return; }
-    const timer = window.setTimeout(() => setSlow(true), 5000);
-    return () => window.clearTimeout(timer);
-  }, [busy]);
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('');
     try { await authenticate(mode, username, password); setPassword(''); }
@@ -34,7 +28,6 @@ export function AuthForm() {
         <input id="password" name="password" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} maxLength={128} required value={password} onChange={e => setPassword(e.target.value)} />
         {mode === 'register' && <p className="input-help">Use at least 8 characters. Avoid common passwords and passwords similar to your username.</p>}
         <Notice message={error} />
-        {busy && slow && <p className="input-help" role="status">The game server is taking longer than usual. Free hosting may need about a minute to wake up. Keep this page open while we wait.</p>}
         <button className="button primary wide" disabled={busy}>{busy ? mode === 'login' ? 'Logging in…' : 'Creating account…' : mode === 'login' ? 'Log in →' : 'Create account →'}</button>
       </form>
       <p className="auth-switch">{mode === 'login' ? 'New to the track?' : 'Already have an account?'} <button className="text-button" disabled={busy} onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'Create an account' : 'Log in'}</button></p>

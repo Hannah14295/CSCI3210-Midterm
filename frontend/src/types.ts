@@ -9,7 +9,7 @@ export const metricsSchema = z.object({
 export const participantSchema = z.object({
   id: z.number(), player: userSchema, joined_at: z.string(), revision: z.number(),
   metrics: metricsSchema, finished_at: z.string().nullable(),
-  elapsed_seconds: decimalSchema.nullable(), wpm: decimalSchema.nullable(),
+  elapsed_seconds: decimalSchema.nullable(), wpm: decimalSchema.nullable(), accuracy: decimalSchema.nullable(),
 });
 export const raceSchema = z.object({
   id: z.number(), paragraph: z.number(), paragraph_text: z.string(), host: userSchema,

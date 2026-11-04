@@ -62,8 +62,9 @@ a paid plan.
 
 `backend/build.sh` installs Python dependencies and gathers static files.
 `backend/start.sh` applies database migrations, runs `bootstrap_deployment`, and
-starts Daphne on Render's assigned port. On a new database, bootstrap creates
-one practice paragraph and the prompted admin. Later restarts preserve existing
+starts Daphne on Render's assigned port. Migration 0008 adds five fable passages
+without overwriting existing titles. Bootstrap creates the prompted admin and
+adds a starter passage if the library is empty. Later restarts preserve existing
 paragraphs and do not change the existing admin's password. It refuses to promote
 an existing ordinary account with the same username.
 
@@ -116,8 +117,10 @@ Open https://hannah14295.github.io/CSCI3210-Midterm/ after the workflow succeeds
 3. In another tab/browser, use a different player account to join that ID.
 4. Start as the host and confirm both screens unlock.
 5. Type with a mistake and confirm it stays red and Backspace is blocked.
-6. Finish in one screen: both players must stop, and the winner's result must
-   appear on Leaderboard.
+6. Finish in one screen: that player's result is saved while the other player
+   can keep typing. After everyone finishes, every connected race screen should
+   show a results popup listing all scores and the WPM and accuracy winners.
+   Tied players share a win. Confirm completed attempts appear on Leaderboard.
 
 Local accounts, paragraphs, and scores remain in your local SQLite file; they
 are not automatically uploaded to PostgreSQL. The free service can take about a

@@ -94,7 +94,9 @@ def update_typing(*, race_id, player_id, text):
     }
     transaction.on_commit(partial(broadcast, race.pk, payload))
     if participant.finished_at is not None:
-        race.status = Race.Status.FINISHED
-        race.save(update_fields=["status"])
+        # The race row lock serializes finishes so only the last player ends it.
+        if not RaceParticipant.objects.filter(race=race, finished_at__isnull=True).exists():
+            race.status = Race.Status.FINISHED
+            race.save(update_fields=["status"])
         transaction.on_commit(partial(broadcast_race_state, race.pk))
     return payload

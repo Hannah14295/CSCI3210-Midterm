@@ -249,6 +249,42 @@
 .race-room .typing-surface { border: 1px solid var(--arena-border); border-radius: 10px; background: #fcfbff; }
 .race-room .typing-passage { padding: 16px; font-size: 19px; line-height: 1.9; }
 
+/* Shared final results open on every connected player's screen. */
+.race-room .race-results-dialog {
+  width: min(700px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 28px;
+  overflow-y: auto;
+  border: 1px solid var(--arena-border);
+  border-radius: 20px;
+  background: #fbf9ff;
+  color: var(--arena-ink);
+  font: inherit;
+  text-align: left;
+  box-shadow: 0 24px 80px rgb(35 20 55 / 25%);
+}
+.race-results-dialog::backdrop { background: rgb(35 20 55 / 50%); }
+.results-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.race-winners { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+.race-room .winner-card { margin: 0; padding: 18px; border: 1px solid #f5b8cc; border-radius: 14px; background: #fce0ea; overflow-wrap: anywhere; }
+.race-room .winner-card:last-child { border-color: #bfdbfe; background: #dbeafe; }
+.winner-card h3 { margin: 0 0 10px; font-size: 13px; }
+.winner-card strong { display: block; font-size: 20px; line-height: 1.4; }
+.winner-card > span { display: block; margin-top: 8px; font-size: 14px; }
+.race-score-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.race-score-table caption { text-align: left; font-weight: bold; margin-bottom: 12px; }
+.race-score-table th,
+.race-score-table td { padding: 12px 10px; border-bottom: 1px solid var(--arena-border); text-align: left; }
+.race-score-table thead { background: #efe8fb; font-size: 12px; }
+.race-score-table tbody th { min-width: 100px; max-width: 230px; overflow-wrap: anywhere; }
+.race-score-table td { white-space: nowrap; }
+.results-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+@media (max-width: 500px) {
+  .race-winners { grid-template-columns: minmax(0, 1fr); }
+  .race-room .race-results-dialog { padding: 20px; }
+}
+
 /* Two independent top-ten boards. No page controls. */
 .leaderboards { max-width: 1120px; }
 .leaderboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }

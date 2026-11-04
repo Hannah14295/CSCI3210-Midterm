@@ -11,6 +11,10 @@ from races.models import Paragraph
 
 
 class DeploymentBootstrapTests(TestCase):
+    def setUp(self):
+        # Bootstrap tests exercise an empty library, independently of seed migrations.
+        Paragraph.objects.all().delete()
+
     def run_bootstrap(self, username="", password=""):
         output = StringIO()
         with patch.dict(os.environ, {
