@@ -68,8 +68,10 @@ class TypingServiceTests(TestCase):
         self.assertTrue(final["complete"])
         self.race.refresh_from_db()
         self.assertEqual(self.race.race_text, original)
-        # This milestone reports a match; scoring/finish persistence comes next.
-        self.assertEqual(self.race.status, Race.Status.RUNNING)
+        self.assertEqual(self.race.status, Race.Status.FINISHED)
+        self.entry.refresh_from_db()
+        self.assertIsNotNone(self.entry.finished_at)
+        self.assertIsNotNone(self.entry.wpm)
 
     def test_backspace_and_clear_are_saved(self):
         start_race(race_id=self.race.pk, player=self.player)

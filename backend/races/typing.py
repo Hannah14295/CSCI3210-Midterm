@@ -1,4 +1,14 @@
 """Pure text comparisons: no browser-supplied percentages or scores."""
+from decimal import Decimal, ROUND_HALF_UP
+
+
+def calculate_wpm(correct_characters, elapsed_seconds):
+    elapsed = Decimal(str(elapsed_seconds))
+    if elapsed <= 0:
+        return Decimal("0.00")
+    return (Decimal(correct_characters) * 12 / elapsed).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP,
+    )
 
 
 def typing_metrics(target, typed):

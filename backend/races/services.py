@@ -1,5 +1,6 @@
 """Race rules shared by API actions and real-time connections."""
 from functools import partial
+from decimal import Decimal
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -7,7 +8,7 @@ from rest_framework.exceptions import APIException, PermissionDenied, Validation
 
 from .models import Race, RaceParticipant
 from .events import broadcast, broadcast_race_state
-from .typing import typing_metrics, text_difference
+from .typing import typing_metrics, text_difference, calculate_wpm
 
 
 class RaceConflict(APIException):
@@ -61,17 +62,37 @@ def update_typing(*, race_id, player_id, text):
     ).first()
     if participant is None:
         raise PermissionDenied("Join this race before typing.")
+    if participant.finished_at is not None:
+        raise RaceConflict("Your result is already saved. Join a new race to try again.")
+    now = timezone.now()
+    elapsed = Decimal(str((now - race.started_at).total_seconds()))
+    if elapsed <= 0:
+        raise RaceConflict("The race start time must be in the past.")
+    metrics = typing_metrics(race.race_text, text)
     difference = text_difference(participant.typed_text, text)
     participant.typed_text = text
     participant.revision += 1
-    participant.save(update_fields=["typed_text", "revision"])
+    current_wpm = calculate_wpm(metrics["correct_prefix"], elapsed)
+    if metrics["complete"]:
+        participant.finished_at = now
+        participant.elapsed_seconds = elapsed
+        participant.wpm = current_wpm
+    participant.save(update_fields=["typed_text", "revision", "finished_at", "elapsed_seconds", "wpm"])
     payload = {
         "type": "progress.updated",
         "race_id": race.pk,
         "player": {"id": player_id, "username": participant.player.username},
         "revision": participant.revision,
         "difference": difference,
-        **typing_metrics(race.race_text, text),
+        **metrics,
+        "wpm": float(current_wpm),
+        "finished_at": participant.finished_at.isoformat() if participant.finished_at else None,
+        "elapsed_seconds": float(elapsed),
     }
     transaction.on_commit(partial(broadcast, race.pk, payload))
+    if participant.finished_at is not None:
+        if not race.participants.filter(finished_at__isnull=True).exists():
+            race.status = Race.Status.FINISHED
+            race.save(update_fields=["status"])
+        transaction.on_commit(partial(broadcast_race_state, race.pk))
     return payload

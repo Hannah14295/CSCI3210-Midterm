@@ -199,3 +199,33 @@ class RaceWebSocketTests(TransactionTestCase):
             self.assertEqual(revision, 0)
         finally:
             await socket.disconnect()
+
+    async def test_finish_broadcasts_saved_result_and_reconnect_restores_it(self):
+        await database_sync_to_async(start_race)(race_id=self.race.pk, player=self.player)
+        socket = self.communicator()
+        reconnect = None
+        try:
+            initial = await self.authenticate(socket, self.token)
+            await socket.send_json_to({
+                "type": "typing.update", "text": initial["race"]["paragraph_text"],
+                "wpm": 999999, "elapsed_seconds": 1, "finished_at": "2020-01-01",
+            })
+            result = await socket.receive_json_from()
+            self.assertEqual(result["type"], "progress.updated")
+            self.assertTrue(result["complete"])
+            self.assertIsNotNone(result["finished_at"])
+            snapshot = await socket.receive_json_from()
+            self.assertEqual(snapshot["type"], "race.updated")
+            own_entry = snapshot["race"]["participants"][0]
+            self.assertIsNotNone(own_entry["finished_at"])
+            self.assertEqual(float(own_entry["wpm"]), result["wpm"])
+            self.assertEqual(snapshot["race"]["status"], "running")
+            await socket.send_json_to({"type": "typing.update", "text": "changed"})
+            self.assertEqual((await socket.receive_json_from())["status"], 409)
+            reconnect = self.communicator()
+            restored = await self.authenticate(reconnect, self.token)
+            self.assertEqual(restored["race"]["participants"][0]["wpm"], own_entry["wpm"])
+        finally:
+            await socket.disconnect()
+            if reconnect:
+                await reconnect.disconnect()

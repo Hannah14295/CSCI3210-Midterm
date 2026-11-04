@@ -19,7 +19,8 @@
 </head>
 <body>
   <h1>Live typing test</h1>
-  <p>This developer page tests server-checked typing progress. WPM and saved finish results come next.</p>
+  <p>This developer page tests typing progress and WPM. Match the full paragraph to save your result.</p>
+  <p><a href="/api/leaderboard/" target="_blank" rel="noopener">View saved leaderboard results</a></p>
   <ol>
     <li>Sign into <a href="/admin/">admin</a> in this browser.</li>
     <li>Create or join a race through <a href="/api/races/">the race API</a>. Your account must be a participant.</li>
@@ -55,6 +56,7 @@
     let socket = null;
     let token = '';
     let race = null;
+    let playerId = null;
     let typingTimer = null;
     const playerRows = new Map();
     function paintPassage() {
@@ -67,12 +69,12 @@
         return span;
       }));
     }
-    function showProgress(player, metrics, revision) {
+    function showProgress(player, metrics, revision, finishedAt = null) {
       const previous = playerRows.get(player.id);
       if (previous && previous.revision > revision) return;
       const row = previous?.row || document.createElement('div');
       const label = document.createElement('p');
-      label.textContent = `${player.username}: ${metrics.progress}% progress, ${metrics.accuracy}% accuracy${metrics.complete ? ' — paragraph matched' : ''}`;
+      label.textContent = `${player.username}: ${metrics.progress}% progress, ${metrics.accuracy}% accuracy, ${metrics.wpm ?? 0} WPM${finishedAt ? ' — result saved!' : ''}`;
       const bar = document.createElement('progress');
       bar.max = 100;
       bar.value = metrics.progress;
@@ -80,20 +82,26 @@
       row.replaceChildren(label, bar);
       if (!previous) byId('players').append(row);
       playerRows.set(player.id, {row, revision});
+      if (player.id === playerId && finishedAt) {
+        byId('typing').disabled = true;
+        clearTimeout(typingTimer);
+        typingTimer = null;
+      }
     }
     function showRace(snapshot) {
       race = snapshot;
       byId('race-status').textContent = `Race ${race.id}: ${race.status}`;
       byId('start-link').href = `/api/races/${race.id}/start/`;
       byId('start-link').hidden = race.status !== 'waiting';
-      byId('typing').disabled = race.status !== 'running' || !race.started_at;
+      const ownEntry = race.participants.find(entry => entry.player.id === playerId);
+      byId('typing').disabled = race.status !== 'running' || !race.started_at || Boolean(ownEntry?.finished_at);
       byId('typing').maxLength = race.paragraph_text.length;
       if (race.status === 'running' && !race.started_at) log('This older race was manually set to Running. Create a new waiting race and start it through the API.');
       const ids = new Set(race.participants.map(entry => entry.player.id));
       for (const [id, entry] of playerRows) {
         if (!ids.has(id)) { entry.row.remove(); playerRows.delete(id); }
       }
-      for (const entry of race.participants) showProgress(entry.player, entry.metrics, entry.revision);
+      for (const entry of race.participants) showProgress(entry.player, entry.metrics, entry.revision, entry.finished_at);
       paintPassage();
     }
     function log(message) {
@@ -128,6 +136,7 @@
           return;
         }
         if (data.type === 'connected') {
+          playerId = data.player.id;
           token = '';
           byId('status').textContent = `Connected as ${data.player.username} to race ${data.race_id}`;
           byId('send').disabled = false;
@@ -135,7 +144,7 @@
           showRace(data.race);
         }
         if (data.type === 'race.updated') showRace(data.race);
-        if (data.type === 'progress.updated') showProgress(data.player, data, data.revision);
+        if (data.type === 'progress.updated') showProgress(data.player, data, data.revision, data.finished_at);
         log(JSON.stringify(data, null, 2));
       });
       socket.addEventListener('close', event => {

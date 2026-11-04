@@ -2,8 +2,9 @@
 
 This project currently has a Django backend with paragraph and race models, an admin
 page for managing them, a read-only paragraph REST API, and player registration,
-login, and current-user APIs. Multiplayer, scores, and the React frontend come
-in later milestones.
+login, and current-user APIs. Live typing, saved WPM results, and a historical
+leaderboard are available through a developer test page. The React game frontend
+comes in a later milestone.
 
 ## Run the project you already have
 
@@ -250,7 +251,7 @@ Run all current tests:
 
 ## Next milestone
 
-Add WPM calculation, saved finish results, and a historical leaderboard.
+Build the React/TypeScript frontend and connect it to these backend features.
 
 ## Milestone 5: Race APIs
 
@@ -465,8 +466,8 @@ The outgoing event contains player identity, race ID, revision, and:
 
 For target `hello` and input `hexlo`, correct_prefix is 2, progress is 40%, and
 accuracy is 80% (four of five positions match). Correcting it to `hello` gives
-100% progress and accuracy. This milestone does not finish the race or save a
-WPM result; full matching is reported for the next scoring milestone to use.
+100% progress and accuracy. Milestone 8 below now uses full matching to save
+the result and finish the participant's run.
 
 `typed_text` and `revision` are persisted on RaceParticipant. Every accepted update
 increments revision so the browser can ignore older progress events delivered
@@ -492,6 +493,68 @@ Files to inspect:
 An authenticated client can still paste or programmatically submit text. Comparing
 text and using server identity is not proof that a human physically typed it;
 this milestone is input validation, not an anti-cheat system.
+
+## Milestone 8: WPM, finish results, and leaderboard
+
+WPM uses five characters as one standardized word, including spaces/punctuation:
+
+```text
+WPM = (correct prefix characters / 5) / elapsed minutes
+    = correct prefix characters * 12 / elapsed seconds
+```
+
+For example, 300 correct characters in 60 seconds is 60 WPM. The live value uses
+the latest accepted input and the server's shared race start time. It updates
+when input or snapshots arrive, not on a standalone ticking timer. Network and
+the demo's up-to-250ms send delay are included in measured time. Final WPM uses
+the full frozen paragraph length, because only an exact match can finish.
+
+`services.update_typing` records `finished_at`, `elapsed_seconds`, and `wpm` on
+RaceParticipant on its first exact match. Server timestamps supply the duration;
+client-supplied scores/times are ignored. Decimal arithmetic rounds WPM to two
+places. A finished participant cannot change the result by sending more typing
+updates (409). There is one result per player/race entry; a new attempt requires
+a new race. Reconnecting restores the same saved result.
+
+Other participants may continue after one player finishes. Once every participant
+has a saved finish, the race status becomes Finished. Finish updates broadcast
+both progress.updated (with final WPM and finished_at) and race.updated snapshots.
+The test page disables the finishing player's input and displays "result saved!".
+If someone disconnects before finishing, the race currently stays Running until
+they return and finish; timeout/abandonment handling is not implemented yet.
+
+GET http://127.0.0.1:8000/api/leaderboard/ lists historical completed attempts:
+
+- Public, read-only, paginated (20 per page).
+- Ordered by descending saved WPM; ties use earlier finish timestamp, then entry ID.
+- Each row includes rank, race ID, player ID/username, final WPM, duration, and finish time.
+- Multiple attempts by one player are separate rows, not one personal-best row.
+- An individual finish appears even while others are still racing.
+- Unfinished participants and old entries without a saved result are excluded.
+- Rank is global across pages; ties get consecutive ranks in the stated order.
+
+Try it by creating a fresh race through the API, connecting on the test page,
+starting through its API link, and typing the complete paragraph. Look for WPM
+and "result saved!", then open the leaderboard link. Refreshing/reconnecting
+should show the same final WPM. Prior practice buffers are not converted into
+scored results retroactively; complete a new race to create one.
+
+Accuracy still measures the current buffer. Since finishing requires exact text,
+final current-buffer accuracy is 100%; corrected mistakes cost time but are not
+counted as a lifetime keystroke error rate. WPM comparisons across different
+paragraph lengths/difficulties are a simple global historical leaderboard, not
+a normalized competitive rating or an anti-cheat system.
+
+Key code locations:
+
+- `typing.py`: calculate_wpm math.
+- `services.py`: timing, finish persistence, result locking, and race completion.
+- `serializers.py`: live metrics and leaderboard output.
+- `views.py`: LeaderboardViewSet and sorted/ranked database query.
+- `urls.py`: registers `/api/leaderboard/`.
+- `admin.py`: shows saved WPM and finish time as read-only values.
+- `migrations/0006_...py`: adds the three result fields.
+- `test_results.py`: formula, timing, immutable results, and leaderboard tests.
 
 Useful official references:
 

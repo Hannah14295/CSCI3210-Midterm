@@ -3,9 +3,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
+from django.db.models import F, Window
+from django.db.models.functions import RowNumber
 
-from .models import Paragraph, Race
-from .serializers import ParagraphSerializer, RaceSerializer, RaceParticipantSerializer
+from .models import Paragraph, Race, RaceParticipant
+from .serializers import ParagraphSerializer, RaceSerializer, RaceParticipantSerializer, LeaderboardSerializer
 from . import services
 
 
@@ -50,3 +52,18 @@ class RaceViewSet(
     def start(self, request, pk=None):
         race = services.start_race(race_id=pk, player=request.user)
         return Response(RaceSerializer(race).data)
+
+
+class LeaderboardViewSet(mixins.ListModelMixin, GenericViewSet):
+    """Historical completed runs, fastest first; ties use finish time then ID."""
+
+    permission_classes = [AllowAny]
+    serializer_class = LeaderboardSerializer
+    queryset = RaceParticipant.objects.filter(
+        finished_at__isnull=False, wpm__isnull=False, elapsed_seconds__gt=0,
+    ).select_related("player").annotate(
+        rank=Window(
+            expression=RowNumber(),
+            order_by=[F("wpm").desc(), F("finished_at").asc(), F("id").asc()],
+        ),
+    ).order_by("-wpm", "finished_at", "id")
