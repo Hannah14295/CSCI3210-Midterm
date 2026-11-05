@@ -51,7 +51,6 @@ export function RaceResultsDialog({ results, raceId, playerId, onBack, isHost, o
         </tr>)}</tbody>
       </table></div>
       <Notice message={error} />
-      {!isHost && <p className="muted">The host can select Race again to bring everyone into a new room.</p>}
       <div className="results-actions">
         <button className="button subtle" onClick={() => dialog.current?.close()}>Close</button>
         <button className="button subtle" onClick={onBack}>Back to race lobby</button>
