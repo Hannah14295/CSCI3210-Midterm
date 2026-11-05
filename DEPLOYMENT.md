@@ -124,6 +124,10 @@ Open https://hannah14295.github.io/CSCI3210-Midterm/ after the workflow succeeds
    can keep typing. After everyone finishes, every connected race screen should
    show a results popup listing all scores and the WPM and accuracy winners.
    Tied players share a win. Confirm completed attempts appear on Leaderboard.
+7. As the host, select **Race again** in the results popup. Both screens should
+   move to a new waiting room with the same players and passage. Confirm typing
+   progress and individual clocks are empty, then start the next countdown.
+   Previous scores should remain on the leaderboards.
 
 Local accounts, paragraphs, and scores remain in your local SQLite file; they
 are not automatically uploaded to PostgreSQL. The free service can take about a

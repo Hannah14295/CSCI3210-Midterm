@@ -15,7 +15,7 @@ class RaceAdmin(admin.ModelAdmin):
     list_filter = ["status"]
     search_fields = ["paragraph__title", "host__username"]
     list_select_related = ["paragraph", "host"]
-    readonly_fields = ["created_at", "started_at", "race_text"]
+    readonly_fields = ["created_at", "started_at", "race_text", "next_race"]
 
 
 @admin.register(RaceParticipant)

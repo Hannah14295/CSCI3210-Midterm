@@ -48,6 +48,10 @@ class Race(models.Model):
     )
     started_at = models.DateTimeField(null=True, blank=True)
     race_text = models.TextField(max_length=2000, blank=True, default="")
+    next_race = models.OneToOneField(
+        "self", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="previous_race",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

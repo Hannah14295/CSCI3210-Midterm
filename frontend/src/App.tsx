@@ -13,6 +13,6 @@ export default function App() {
     <header className="site-header"><button className="brand" aria-label="TypeRacer home" onClick={() => { setTab('arena'); setRaceId(null); }}>TypeRacer</button>
       <nav aria-label="Main navigation"><button className={tab === 'arena' ? 'nav-item active' : 'nav-item'} onClick={() => setTab('arena')}>Race arena</button><button className={tab === 'leaderboard' ? 'nav-item active' : 'nav-item'} onClick={() => setTab('leaderboard')}>Leaderboard</button></nav>
     </header>
-    <main id="main">{checking ? <div className="empty" role="status">Checking your account…</div> : tab === 'leaderboard' ? <Leaderboard /> : !user ? <AuthForm /> : raceId ? <RaceRoom key={raceId} raceId={raceId} onBack={() => setRaceId(null)} /> : <Lobby onEnter={setRaceId} />}</main>
+    <main id="main">{checking ? <div className="empty" role="status">Checking your account…</div> : tab === 'leaderboard' ? <Leaderboard /> : !user ? <AuthForm /> : raceId ? <RaceRoom key={raceId} raceId={raceId} onBack={() => setRaceId(null)} onEnter={setRaceId} /> : <Lobby onEnter={setRaceId} />}</main>
   </div>;
 }

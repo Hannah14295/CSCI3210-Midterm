@@ -14,7 +14,7 @@ export const participantSchema = z.object({
 export const raceSchema = z.object({
   id: z.number(), paragraph: z.number(), paragraph_text: z.string(), host: userSchema,
   status: z.enum(['waiting', 'running', 'finished']), created_at: z.string(),
-  started_at: z.string().nullable(), server_time: z.string(), participants: z.array(participantSchema),
+  started_at: z.string().nullable(), server_time: z.string(), next_race_id: z.number().nullable(), participants: z.array(participantSchema),
 });
 export const paragraphSchema = z.object({ id: z.number(), title: z.string(), text: z.string() });
 export const resultSchema = z.object({

@@ -2,11 +2,12 @@ from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from django.test import Client, TransactionTestCase, override_settings
+from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
 from config.asgi import application
 from .models import Paragraph, Race, RaceParticipant
-from .services import start_race
+from .services import create_rematch, start_race
 
 
 @override_settings(RACE_COUNTDOWN_SECONDS=0)
@@ -267,6 +268,36 @@ class RaceWebSocketTests(TransactionTestCase):
             self.assertEqual(revision, 0)
         finally:
             await socket.disconnect()
+
+    async def test_rematch_broadcast_moves_both_players_and_is_recoverable_on_reconnect(self):
+        await database_sync_to_async(lambda: Race.objects.filter(pk=self.race.pk).update(status=Race.Status.FINISHED))()
+        first = self.communicator()
+        second = self.communicator()
+        reconnect = next_room = None
+        try:
+            await self.authenticate(first, self.token)
+            await self.authenticate(second, self.other_token)
+            race, created = await database_sync_to_async(create_rematch)(race_id=self.race.pk, player=self.player)
+            self.assertTrue(created)
+            event = await first.receive_json_from()
+            self.assertEqual(event, await second.receive_json_from())
+            self.assertEqual(event["type"], "race.updated")
+            self.assertEqual(event["race"]["next_race_id"], race.pk)
+            reconnect = self.communicator()
+            restored = await self.authenticate(reconnect, self.other_token)
+            self.assertEqual(restored["race"]["next_race_id"], race.pk)
+            next_room = self.communicator(race.pk)
+            initial = await self.authenticate(next_room, self.other_token)
+            self.assertEqual(initial["race"]["status"], "waiting")
+            self.assertEqual(initial["your_text"], "")
+            self.assertEqual(len(initial["race"]["participants"]), 2)
+        finally:
+            await first.disconnect()
+            await second.disconnect()
+            if reconnect:
+                await reconnect.disconnect()
+            if next_room:
+                await next_room.disconnect()
 
     async def test_finish_broadcasts_saved_result_and_reconnect_restores_it(self):
         await database_sync_to_async(start_race)(race_id=self.race.pk, player=self.player)

@@ -31,7 +31,7 @@ class RaceViewSet(
     queryset = Race.objects.select_related("host", "paragraph").prefetch_related("participants__player")
 
     def get_serializer_class(self):
-        if self.action in ("join", "start"):
+        if self.action in ("join", "start", "rematch"):
             return serializers.Serializer  # These actions take no body fields.
         return super().get_serializer_class()
 
@@ -53,6 +53,12 @@ class RaceViewSet(
     def start(self, request, pk=None):
         race = services.start_race(race_id=pk, player=request.user)
         return Response(RaceSerializer(race).data)
+
+    @action(detail=True, methods=["post"])
+    def rematch(self, request, pk=None):
+        race, created = services.create_rematch(race_id=pk, player=request.user)
+        return Response(RaceSerializer(race).data,
+                        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 class LeaderboardPagination(PageNumberPagination):

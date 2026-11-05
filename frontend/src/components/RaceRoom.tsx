@@ -59,13 +59,13 @@ const Passage = memo(function Passage({
   );
 });
 
-export function RaceRoom({ raceId, onBack }: { raceId: number; onBack: () => void }) {
+export function RaceRoom({ raceId, onBack, onEnter }: { raceId: number; onBack: () => void; onEnter: (id: number) => void }) {
   const { token, user } = useAuth();
   if (!token || !user) return null;
-  return <ConnectedRace raceId={raceId} token={token} playerId={user.id} onBack={onBack} />;
+  return <ConnectedRace raceId={raceId} token={token} playerId={user.id} onBack={onBack} onEnter={onEnter} />;
 }
 
-function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; token: string; playerId: number; onBack: () => void }) {
+function ConnectedRace({ raceId, token, playerId, onBack, onEnter }: { raceId: number; token: string; playerId: number; onBack: () => void; onEnter: (id: number) => void }) {
   const { race, text, typedAt, typingStartedAt, clockOffset, updateText, applyRace, connection, error, reconnect } = useRace(raceId, token, playerId);
   const [now, setNow] = useState(Date.now);
   const [busy, setBusy] = useState(false);
@@ -90,6 +90,9 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
     : race?.participants || [];
   const canType = livePreview && !complete;
   useEffect(() => {
+    if (race?.next_race_id) onEnter(race.next_race_id);
+  }, [race?.next_race_id, onEnter]);
+  useEffect(() => {
     if (race?.status !== 'running' || finished) return;
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 100);
@@ -105,6 +108,10 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
   async function copy() {
     try { await navigator.clipboard.writeText(String(raceId)); setCopied(true); }
     catch { setActionError(`Share this race ID: ${raceId}`); }
+  }
+  async function raceAgain() {
+    const next = await request(`races/${raceId}/rematch/`, raceSchema, token, { method: 'POST' });
+    onEnter(next.id);
   }
   return <div className="arena race-room">
     <div className="room-heading"><button className="text-button back" onClick={onBack}>← Race lobby</button><span className={`connection ${connection}`} role="status"><i />{connection === 'connected' ? 'Live connection' : connection}</span></div>
@@ -126,7 +133,7 @@ function ConnectedRace({ raceId, token, playerId, onBack }: { raceId: number; to
       </div>
       {race.status === 'waiting' && <div className="waiting-banner"><div><strong>Everyone on the grid?</strong><p>{race.host.id === playerId ? 'Share the race ID, wait for your friends, then start when you’re ready.' : `Waiting for ${race.host.username} to start. Your input will unlock automatically.`}</p></div>{race.host.id === playerId && <button className="button primary" disabled={busy || connection !== 'connected'} onClick={() => void start()}>{busy ? 'Starting…' : 'Start race →'}</button>}</div>}
       {finished && race.status === 'running' && <div className="waiting-banner" role="status"><div><strong>Your result is saved.</strong><p>Waiting for {remaining} {remaining === 1 ? 'racer' : 'racers'} to finish.</p></div></div>}
-      {results && <RaceResultsDialog results={results} raceId={raceId} playerId={playerId} onBack={onBack} />}
+      {results && <RaceResultsDialog results={results} raceId={raceId} playerId={playerId} onBack={onBack} isHost={race.host.id === playerId} onRaceAgain={raceAgain} />}
       {race.status === 'running' && !race.started_at && <Notice message="This race was manually marked Running without a start time. Create a fresh room through the lobby." />}
       <section className="panel typing-panel">
         <div className="section-heading">

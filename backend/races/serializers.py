@@ -42,6 +42,7 @@ class RaceSerializer(serializers.ModelSerializer):
     participants = RaceParticipantSerializer(many=True, read_only=True)
     paragraph_text = serializers.SerializerMethodField()
     server_time = serializers.SerializerMethodField()
+    next_race_id = serializers.IntegerField(read_only=True, allow_null=True)
 
     def get_server_time(self, race):
         return timezone.now().isoformat()
@@ -51,8 +52,8 @@ class RaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Race
-        fields = ["id", "paragraph", "paragraph_text", "host", "status", "created_at", "started_at", "server_time", "participants"]
-        read_only_fields = ["id", "paragraph_text", "host", "status", "created_at", "started_at", "server_time", "participants"]
+        fields = ["id", "paragraph", "paragraph_text", "host", "status", "created_at", "started_at", "server_time", "next_race_id", "participants"]
+        read_only_fields = ["id", "paragraph_text", "host", "status", "created_at", "started_at", "server_time", "next_race_id", "participants"]
 
 
 class LeaderboardSerializer(serializers.ModelSerializer):

@@ -38,6 +38,30 @@ def join_race(*, race_id, player):
 
 
 @transaction.atomic
+def create_rematch(*, race_id, player):
+    previous = get_object_or_404(Race.objects.select_for_update(), pk=race_id)
+    if previous.host_id != player.pk:
+        raise PermissionDenied("Only the host can create the next race.")
+    if previous.status != Race.Status.FINISHED:
+        raise RaceConflict("Everyone must finish before racing again.")
+    if previous.next_race_id:
+        return previous.next_race, False
+    race = Race.objects.create(
+        host_id=previous.host_id, paragraph_id=previous.paragraph_id,
+        race_text=previous.race_text,
+    )
+    players = set(previous.participants.filter(player__is_active=True).values_list("player_id", flat=True))
+    players.add(previous.host_id)
+    RaceParticipant.objects.bulk_create([
+        RaceParticipant(race=race, player_id=player_id) for player_id in sorted(players)
+    ])
+    previous.next_race = race
+    previous.save(update_fields=["next_race"])
+    transaction.on_commit(partial(broadcast_race_state, previous.pk))
+    return race, True
+
+
+@transaction.atomic
 def start_race(*, race_id, player):
     race = get_object_or_404(Race.objects.select_for_update(), pk=race_id)
     if race.host_id != player.pk:
@@ -46,7 +70,7 @@ def start_race(*, race_id, player):
         raise RaceConflict("This race has already started or finished.")
     race.status = Race.Status.RUNNING
     race.started_at = timezone.now() + timedelta(seconds=settings.RACE_COUNTDOWN_SECONDS)
-    race.race_text = race.paragraph.text
+    race.race_text = race.race_text or race.paragraph.text
     race.save(update_fields=["status", "started_at", "race_text"])
     transaction.on_commit(partial(broadcast_race_state, race.pk))
     return race

@@ -1,10 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RaceResults } from '../raceResults';
+import { describeError } from '../api';
+import { Notice } from './Notice';
 
-export function RaceResultsDialog({ results, raceId, playerId, onBack }: {
+export function RaceResultsDialog({ results, raceId, playerId, onBack, isHost, onRaceAgain }: {
   results: RaceResults; raceId: number; playerId: number; onBack: () => void;
+  isHost: boolean; onRaceAgain: () => Promise<void>;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function rematch() {
+    setBusy(true); setError('');
+    try { await onRaceAgain(); }
+    catch (problem) { setError(describeError(problem)); }
+    finally { setBusy(false); }
+  }
   useEffect(() => {
     const element = dialog.current;
     element?.showModal();
@@ -39,9 +50,12 @@ export function RaceResultsDialog({ results, raceId, playerId, onBack }: {
           <td>{entry.wpm.toFixed(2)}</td><td>{entry.accuracy.toFixed(2)}%</td><td>{entry.elapsed_seconds.toFixed(2)}s</td>
         </tr>)}</tbody>
       </table></div>
+      <Notice message={error} />
+      {!isHost && <p className="muted">The host can select Race again to bring everyone into a new room.</p>}
       <div className="results-actions">
         <button className="button subtle" onClick={() => dialog.current?.close()}>Close</button>
-        <button className="button primary" onClick={onBack}>Back to race lobby</button>
+        <button className="button subtle" onClick={onBack}>Back to race lobby</button>
+        {isHost && <button className="button primary" disabled={busy} onClick={() => void rematch()}>{busy ? 'Creating race…' : 'Race again'}</button>}
       </div>
     </dialog>
   </>;
