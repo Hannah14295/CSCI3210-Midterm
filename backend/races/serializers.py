@@ -63,3 +63,12 @@ class LeaderboardSerializer(serializers.ModelSerializer):
         model = RaceParticipant
         fields = ["rank", "id", "race", "player", "wpm", "accuracy", "elapsed_seconds", "finished_at"]
         read_only_fields = fields
+
+
+class PersonalBestSerializer(serializers.Serializer):
+    player = serializers.SerializerMethodField()
+    best_wpm = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    best_accuracy = serializers.DecimalField(max_digits=5, decimal_places=2, allow_null=True, read_only=True)
+
+    def get_player(self, row):
+        return {"id": row["player_id"], "username": row["player__username"]}

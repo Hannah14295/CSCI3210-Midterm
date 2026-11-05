@@ -22,6 +22,12 @@ export const resultSchema = z.object({
   wpm: decimalSchema, accuracy: decimalSchema.nullable(), elapsed_seconds: decimalSchema, finished_at: z.string(),
 });
 export const authSchema = z.object({ user: userSchema, token: z.string() });
+export const personalBestsSchema = z.object({
+  results: z.array(z.object({
+    player: userSchema, best_wpm: decimalSchema, best_accuracy: decimalSchema.nullable(),
+  })),
+});
+export type PersonalBest = z.infer<typeof personalBestsSchema>['results'][number];
 export const pageSchema = <T extends z.ZodType>(item: T) => z.object({
   count: z.number(), next: z.string().nullable(), previous: z.string().nullable(), results: z.array(item),
 });

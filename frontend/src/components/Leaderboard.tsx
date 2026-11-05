@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { describeError, request } from '../api';
-import { pageSchema, resultSchema } from '../types';
-import type { Result } from '../types';
+import { pageSchema, resultSchema, personalBestsSchema } from '../types';
+import type { PersonalBest, Result } from '../types';
 import { Notice } from './Notice';
 
 type Metric = 'wpm' | 'accuracy';
@@ -37,6 +37,7 @@ function Rankings({ metric, rows, loading }: { metric: Metric; rows: Result[]; l
 export function Leaderboard() {
   const [speed, setSpeed] = useState<Result[]>([]);
   const [accuracy, setAccuracy] = useState<Result[]>([]);
+  const [personalBests, setPersonalBests] = useState<PersonalBest[]>([]);
   const [refresh, setRefresh] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,9 +47,11 @@ export function Leaderboard() {
     Promise.all([
       request('leaderboard/?metric=wpm&limit=10', pageSchema(resultSchema), null, { signal: controller.signal }),
       request('leaderboard/?metric=accuracy&limit=10', pageSchema(resultSchema), null, { signal: controller.signal }),
-    ]).then(([fastest, mostAccurate]) => {
+      request('leaderboard/personal-bests/', personalBestsSchema, null, { signal: controller.signal }),
+    ]).then(([fastest, mostAccurate, bests]) => {
       setSpeed(fastest.results.slice(0, 10));
       setAccuracy(mostAccurate.results.slice(0, 10));
+      setPersonalBests(bests.results);
     }).catch(problem => { if (!controller.signal.aborted) setError(describeError(problem)); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -62,6 +65,19 @@ export function Leaderboard() {
     <div className="leaderboard-grid">
       <Rankings metric="wpm" rows={speed} loading={loading} />
       <Rankings metric="accuracy" rows={accuracy} loading={loading} />
+      <section className="panel leaderboard-panel personal-bests-panel" aria-labelledby="personal-bests-title" aria-busy={loading}>
+        <div className="section-heading"><h2 id="personal-bests-title">Personal bests</h2><span className="leaderboard-category">By player</span></div>
+        {loading ? <p className="empty" role="status">Loading personal bests…</p>
+          : !personalBests.length ? <div className="empty"><h3>No results yet</h3><p>Finish a race to set your personal bests.</p></div>
+          : <div className="table-scroll"><table>
+            <thead><tr><th scope="col">Racer</th><th scope="col">Best WPM</th><th scope="col">Best accuracy</th></tr></thead>
+            <tbody>{personalBests.map(row => <tr key={row.player.id}>
+              <th scope="row" className="racer-name">{row.player.username}</th>
+              <td className="score-cell">{row.best_wpm.toFixed(2)}</td>
+              <td className="score-cell">{row.best_accuracy === null ? '—' : `${row.best_accuracy.toFixed(2)}%`}</td>
+            </tr>)}</tbody>
+          </table></div>}
+      </section>
     </div>
   </div>;
 }

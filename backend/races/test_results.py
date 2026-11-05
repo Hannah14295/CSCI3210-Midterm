@@ -187,6 +187,54 @@ class LeaderboardTests(APITestCase):
         response = self.client.get(reverse("leaderboard-list"), {"metric": "client_score"})
         self.assertEqual(response.status_code, 400)
 
+    def test_personal_bests_use_independent_maxima_and_one_row_per_player(self):
+        self.result(100, accuracy=80)
+        self.result(40, accuracy=100)
+        self.result(85, accuracy=95)
+        other = get_user_model().objects.create_user(username="anotherleader")
+        other_result = self.result(20, accuracy=90)
+        other_result.player = other
+        other_result.save(update_fields=["player"])
+        RaceParticipant.objects.create(race=self.race, player=self.player, wpm=9999, accuracy=100)
+        response = self.client.get(reverse("leaderboard-personal-bests"))
+        self.assertEqual(response.status_code, 200)
+        rows = response.data["results"]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["player"], {"id": self.player.pk, "username": self.player.username})
+        self.assertEqual(float(rows[0]["best_wpm"]), 100)
+        self.assertEqual(float(rows[0]["best_accuracy"]), 100)
+        self.assertEqual(rows[1]["player"]["id"], other.pk)
+
+    def test_personal_bests_update_after_new_results_without_duplicate_rows(self):
+        self.result(50, accuracy=100)
+        url = reverse("leaderboard-personal-bests")
+        self.assertEqual(float(self.client.get(url).data["results"][0]["best_wpm"]), 50)
+        self.result(90, accuracy=85)
+        rows = self.client.get(url).data["results"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(float(rows[0]["best_wpm"]), 90)
+        self.assertEqual(float(rows[0]["best_accuracy"]), 100)
+
+    def test_personal_bests_include_players_outside_the_attempt_top_ten(self):
+        for _ in range(12):
+            self.result(100, accuracy=100)
+        for index in range(11):
+            player = get_user_model().objects.create_user(username=f"personalbest{index}")
+            entry = self.result(index, accuracy=0)
+            entry.player = player
+            entry.save(update_fields=["player"])
+        rows = self.client.get(reverse("leaderboard-personal-bests")).data["results"]
+        self.assertEqual(len(rows), 12)
+        self.assertEqual(len({row["player"]["id"] for row in rows}), 12)
+        self.assertEqual(float(rows[-1]["best_wpm"]), 0)
+        self.assertEqual(float(rows[-1]["best_accuracy"]), 0)
+
+    def test_personal_bests_keep_unknown_accuracy_and_reject_score_writes(self):
+        self.result(50)
+        url = reverse("leaderboard-personal-bests")
+        self.assertIsNone(self.client.get(url).data["results"][0]["best_accuracy"])
+        self.assertEqual(self.client.post(url, {"best_wpm": 9999}).status_code, 405)
+
     def test_accuracy_backfill_uses_saved_text_and_skips_incomplete_history(self):
         from importlib import import_module
         from types import SimpleNamespace

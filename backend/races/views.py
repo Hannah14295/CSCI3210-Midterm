@@ -4,11 +4,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
-from django.db.models import F, Window
+from django.db.models import F, Max, Window
 from django.db.models.functions import RowNumber
 
 from .models import Paragraph, Race, RaceParticipant
-from .serializers import ParagraphSerializer, RaceSerializer, RaceParticipantSerializer, LeaderboardSerializer
+from .serializers import ParagraphSerializer, RaceSerializer, RaceParticipantSerializer, LeaderboardSerializer, PersonalBestSerializer
 from . import services
 
 
@@ -70,6 +70,15 @@ class LeaderboardViewSet(mixins.ListModelMixin, GenericViewSet):
     queryset = RaceParticipant.objects.filter(
         finished_at__isnull=False, wpm__isnull=False, elapsed_seconds__gt=0,
     ).select_related("player")
+
+    @action(detail=False, methods=["get"], url_path="personal-bests")
+    def personal_bests(self, request):
+        # Each maximum is independent: the best speed and precision may come
+        # from different attempts. Aggregate the full history, not the top ten.
+        players = self.queryset.values("player_id", "player__username").annotate(
+            best_wpm=Max("wpm"), best_accuracy=Max("accuracy"),
+        ).order_by("-best_wpm", "player__username", "player_id")
+        return Response({"results": PersonalBestSerializer(players, many=True).data})
 
     def get_queryset(self):
         metric = self.request.query_params.get("metric", "wpm")

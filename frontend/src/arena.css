@@ -327,6 +327,7 @@
 .leaderboards { max-width: 1120px; }
 .leaderboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
 .leaderboards .leaderboard-panel { padding: 24px; background: #fbf9ff; }
+.leaderboards .personal-bests-panel { grid-column: 1 / -1; }
 .leaderboards .section-heading { flex-wrap: wrap; gap: 8px; }
 .leaderboards h2 { font-size: 22px; }
 .leaderboard-category { padding: 4px 10px; border-radius: 20px; background: #efe8fb; font-size: 11px; color: var(--arena-ink); }
