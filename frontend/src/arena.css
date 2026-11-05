@@ -247,6 +247,7 @@
 .ready-status { color: #746889; }
 .ready-status.ready { color: #08752e; font-weight: bold; }
 .ready-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.room-share-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .race-room .typing-panel { margin-top: 20px; }
 .race-room .typing-panel .section-heading { flex-wrap: wrap; font-size: 13px; }
 .race-room .typing-surface { border: 1px solid var(--arena-border); border-radius: 10px; background: #fcfbff; }

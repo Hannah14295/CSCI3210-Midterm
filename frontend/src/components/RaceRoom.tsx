@@ -11,6 +11,7 @@ import { RaceResultsDialog } from './RaceResultsDialog';
 import { RaceMusic } from './RaceMusic';
 import { FinishConfetti } from './FinishConfetti';
 import { countdownAt } from '../countdown';
+import { raceInviteUrl } from '../raceInvite';
 
 const Passage = memo(function Passage({
   target,
@@ -71,6 +72,7 @@ function ConnectedRace({ raceId, token, playerId, onBack, onEnter }: { raceId: n
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
   const [caret, setCaret] = useState<number | null>(null);
   const own = race?.participants.find(entry => entry.player.id === playerId);
@@ -112,6 +114,11 @@ function ConnectedRace({ raceId, token, playerId, onBack, onEnter }: { raceId: n
     catch (problem) { setActionError(describeError(problem)); }
     finally { setBusy(false); }
   }
+  async function shareLink() {
+    const link = raceInviteUrl(window.location.href, raceId);
+    try { await navigator.clipboard.writeText(link); setLinkCopied(true); }
+    catch { setActionError(`Share this link: ${link}`); }
+  }
   async function copy() {
     try { await navigator.clipboard.writeText(String(raceId)); setCopied(true); }
     catch { setActionError(`Share this race ID: ${raceId}`); }
@@ -122,7 +129,7 @@ function ConnectedRace({ raceId, token, playerId, onBack, onEnter }: { raceId: n
   }
   return <div className="arena race-room">
     <div className="room-heading"><button className="text-button back" onClick={onBack}>← Race lobby</button><span className={`connection ${connection}`} role="status"><i />{connection === 'connected' ? 'Live connection' : connection}</span></div>
-    <div className="page-heading"><div><span className="eyebrow">ROOM #{raceId}</span><h1>{finished ? 'Across the line.' : race?.status === 'running' ? 'Make every key count.' : 'Your starting line.'}</h1><p className="muted">{race ? `Hosted by ${race.host.username} · ${race.participants.length} ${race.participants.length === 1 ? 'racer' : 'racers'}` : 'Connecting to your race…'}</p></div><button className="button subtle" onClick={copy}>{copied ? 'ID copied ✓' : `Copy race ID #${raceId}`}</button></div>
+    <div className="page-heading"><div><span className="eyebrow">ROOM #{raceId}</span><h1>{finished ? 'Across the line.' : race?.status === 'running' ? 'Make every key count.' : 'Your starting line.'}</h1><p className="muted">{race ? `Hosted by ${race.host.username} · ${race.participants.length} ${race.participants.length === 1 ? 'racer' : 'racers'}` : 'Connecting to your race…'}</p></div><div className="room-share-actions"><button className="button subtle" onClick={copy}>{copied ? 'ID copied ✓' : `Copy race ID #${raceId}`}</button><button className="button subtle" onClick={shareLink}>{linkCopied ? 'Link copied ✓' : 'Share link'}</button></div></div>
     <Notice message={error || actionError} />
     <RaceMusic playing={canType} />
     {(connection === 'disconnected' || connection === 'reconnecting') && <button className="button dark" onClick={reconnect}>Reconnect to race</button>}
