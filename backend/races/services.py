@@ -62,12 +62,28 @@ def create_rematch(*, race_id, player):
 
 
 @transaction.atomic
+def set_ready(*, race_id, player, ready):
+    race = get_object_or_404(Race.objects.select_for_update(), pk=race_id)
+    if race.status != Race.Status.WAITING:
+        raise RaceConflict("Readiness can only change in a waiting room.")
+    participant = race.participants.filter(player=player).first()
+    if participant is None:
+        raise PermissionDenied("Join this race before marking yourself ready.")
+    participant.is_ready = ready
+    participant.save(update_fields=["is_ready"])
+    transaction.on_commit(partial(broadcast_race_state, race.pk))
+    return race
+
+
+@transaction.atomic
 def start_race(*, race_id, player):
     race = get_object_or_404(Race.objects.select_for_update(), pk=race_id)
     if race.host_id != player.pk:
         raise PermissionDenied("Only the host can start this race.")
     if race.status != Race.Status.WAITING:
         raise RaceConflict("This race has already started or finished.")
+    if not race.participants.exists() or race.participants.filter(is_ready=False).exists():
+        raise RaceConflict("Every racer must be ready before starting.")
     race.status = Race.Status.RUNNING
     race.started_at = timezone.now() + timedelta(seconds=settings.RACE_COUNTDOWN_SECONDS)
     race.race_text = race.race_text or race.paragraph.text

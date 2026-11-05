@@ -7,7 +7,7 @@ export const metricsSchema = z.object({
   progress: z.number(), accuracy: z.number(), complete: z.boolean(), wpm: z.number(),
 });
 export const participantSchema = z.object({
-  id: z.number(), player: userSchema, joined_at: z.string(), revision: z.number(), typing_started_at: z.string().nullable(),
+  id: z.number(), player: userSchema, joined_at: z.string(), revision: z.number(), is_ready: z.boolean(), typing_started_at: z.string().nullable(),
   metrics: metricsSchema, finished_at: z.string().nullable(),
   elapsed_seconds: decimalSchema.nullable(), wpm: decimalSchema.nullable(), accuracy: decimalSchema.nullable(),
 });

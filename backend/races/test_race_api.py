@@ -56,6 +56,7 @@ class RaceAPITests(APITestCase):
         self.assertEqual(self.race.participants.count(), 1)
 
     def test_only_host_can_start_and_start_time_cannot_be_reset(self):
+        RaceParticipant.objects.create(race=self.race, player=self.host, is_ready=True)
         url = reverse("race-start", args=[self.race.pk])
         self.authenticate(self.other)
         self.assertEqual(self.client.post(url).status_code, 403)

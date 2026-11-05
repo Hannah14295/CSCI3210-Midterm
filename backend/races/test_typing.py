@@ -37,7 +37,7 @@ class TypingServiceTests(TestCase):
         self.player = get_user_model().objects.create_user(username="typist")
         self.paragraph = Paragraph.objects.create(title="Practice", text="hello world, practice today")
         self.race = Race.objects.create(host=self.player, paragraph=self.paragraph)
-        self.entry = RaceParticipant.objects.create(race=self.race, player=self.player)
+        self.entry = RaceParticipant.objects.create(is_ready=True, race=self.race, player=self.player)
 
     def update(self, text):
         return update_typing(race_id=self.race.pk, player_id=self.player.pk, text=text)

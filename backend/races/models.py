@@ -77,6 +77,7 @@ class RaceParticipant(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
     typed_text = models.TextField(max_length=2000, blank=True, default="")
     revision = models.PositiveIntegerField(default=0)
+    is_ready = models.BooleanField(default=False)
     typing_started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     elapsed_seconds = models.DecimalField(max_digits=14, decimal_places=6, null=True, blank=True)

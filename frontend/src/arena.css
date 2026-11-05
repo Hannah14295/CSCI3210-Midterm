@@ -242,6 +242,11 @@
 .race-room .stats-grid .status-value { font-size: 18px; text-transform: capitalize; }
 .race-room .waiting-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; border-radius: 14px; background: #efe8fb; }
 .race-room .waiting-banner p { margin: 6px 0 0; font-size: 13px; }
+.ready-list { padding: 0; list-style: none; font-size: 14px; }
+.ready-list li { margin-top: 8px; }
+.ready-status { color: #746889; }
+.ready-status.ready { color: #08752e; font-weight: bold; }
+.ready-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .race-room .typing-panel { margin-top: 20px; }
 .race-room .typing-panel .section-heading { flex-wrap: wrap; font-size: 13px; }
 .race-room .typing-surface { border: 1px solid var(--arena-border); border-radius: 10px; background: #fcfbff; }

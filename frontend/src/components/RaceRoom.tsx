@@ -89,6 +89,13 @@ function ConnectedRace({ raceId, token, playerId, onBack, onEnter }: { raceId: n
     ? race.participants.map(entry => entry.player.id === playerId ? { ...entry, metrics } : entry)
     : race?.participants || [];
   const canType = livePreview && !complete;
+  const everyoneReady = Boolean(race?.participants.length) && Boolean(race?.participants.every(entry => entry.is_ready));
+  async function toggleReady() {
+    setBusy(true); setActionError('');
+    try { applyRace(await request(`races/${raceId}/ready/`, raceSchema, token, { method: 'POST', body: { ready: !own?.is_ready } })); }
+    catch (problem) { setActionError(describeError(problem)); }
+    finally { setBusy(false); }
+  }
   useEffect(() => {
     if (race?.next_race_id) onEnter(race.next_race_id);
   }, [race?.next_race_id, onEnter]);
@@ -131,7 +138,15 @@ function ConnectedRace({ raceId, token, playerId, onBack, onEnter }: { raceId: n
         <div><span>PROGRESS</span><strong>{(metrics?.progress || 0).toFixed(0)}<small>%</small></strong></div>
         <div><span>RACE STATUS</span><strong className="status-value">{race.status === 'finished' ? 'Finished' : finished ? 'Waiting for racers' : countingDown ? 'Starting…' : livePreview && complete ? 'Saving result…' : race.status}</strong></div>
       </div>
-      {race.status === 'waiting' && <div className="waiting-banner"><div><strong>Everyone on the grid?</strong><p>{race.host.id === playerId ? 'Share the race ID, wait for your friends, then start when you’re ready.' : `Waiting for ${race.host.username} to start. Your input will unlock automatically.`}</p></div>{race.host.id === playerId && <button className="button primary" disabled={busy || connection !== 'connected'} onClick={() => void start()}>{busy ? 'Starting…' : 'Start race →'}</button>}</div>}
+      {race.status === 'waiting' && <div className="waiting-banner">
+        <div><strong>{everyoneReady ? 'Everyone is ready!' : 'Ready to race?'}</strong>
+          <ul className="ready-list">{race.participants.map(entry => <li key={entry.id}>{entry.player.username}: <span className={entry.is_ready ? 'ready-status ready' : 'ready-status'}>{entry.is_ready ? 'Ready' : 'Not ready'}</span></li>)}</ul>
+        </div>
+        <div className="ready-actions">
+          <button className="button subtle" aria-pressed={own?.is_ready || false} disabled={busy || connection !== 'connected' || !own} onClick={() => void toggleReady()}>{own?.is_ready ? 'Not ready' : "I'm ready"}</button>
+          {race.host.id === playerId && <button className="button primary" disabled={busy || connection !== 'connected' || !everyoneReady} onClick={() => void start()}>{busy ? 'Please wait…' : 'Start race'}</button>}
+        </div>
+      </div>}
       {finished && race.status === 'running' && <div className="waiting-banner" role="status"><div><strong>Your result is saved.</strong><p>Waiting for {remaining} {remaining === 1 ? 'racer' : 'racers'} to finish.</p></div></div>}
       {results && <RaceResultsDialog results={results} raceId={raceId} playerId={playerId} onBack={onBack} isHost={race.host.id === playerId} onRaceAgain={raceAgain} />}
       {race.status === 'running' && !race.started_at && <Notice message="This race was manually marked Running without a start time. Create a fresh room through the lobby." />}

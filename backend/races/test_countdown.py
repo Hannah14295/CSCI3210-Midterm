@@ -19,8 +19,8 @@ class CountdownClockTests(TestCase):
         self.guest = User.objects.create_user(username="countdownguest")
         paragraph = Paragraph.objects.create(title="Countdown", text="hello world, a fresh typing race")
         self.race = Race.objects.create(host=self.host, paragraph=paragraph)
-        self.first = RaceParticipant.objects.create(race=self.race, player=self.host)
-        self.second = RaceParticipant.objects.create(race=self.race, player=self.guest)
+        self.first = RaceParticipant.objects.create(is_ready=True, race=self.race, player=self.host)
+        self.second = RaceParticipant.objects.create(is_ready=True, race=self.race, player=self.guest)
         self.clicked = timezone.now()
         with patch("races.services.timezone.now", return_value=self.clicked):
             start_race(race_id=self.race.pk, player=self.host)

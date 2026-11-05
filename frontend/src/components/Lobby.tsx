@@ -4,12 +4,14 @@ import { describeError, request } from '../api';
 import { pageSchema, paragraphSchema, participantSchema, raceSchema } from '../types';
 import type { Paragraph, Race } from '../types';
 import { Notice } from './Notice';
+import { passageDifficulty } from '../passageDifficulty';
 
 export function Lobby({ onEnter }: { onEnter: (id: number) => void }) {
   const { token, user } = useAuth();
   const [paragraphs, setParagraphs] = useState<Paragraph[]>([]);
   const [races, setRaces] = useState<Race[]>([]);
   const [selection, setSelection] = useState('');
+  const [difficulty, setDifficulty] = useState('all');
   const [joinId, setJoinId] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -39,15 +41,25 @@ export function Lobby({ onEnter }: { onEnter: (id: number) => void }) {
     else void act(async () => { await request(`races/${race.id}/join/`, participantSchema, token, { method: 'POST' }); return race.id; });
   }
   const passage = paragraphs.find(item => item.id === Number(selection));
+  const choices = paragraphs.filter(item => difficulty === 'all' || passageDifficulty(item.text) === difficulty);
   return <div className="arena lobby">
     <div className="page-heading"><div><h1>Ready to play?</h1><p className="muted">Choose your own room or join another player's room.</p></div></div>
     <Notice message={error} />
     <div className="lobby-grid">
       <section className="panel create-panel"><span className="section-number">01 / CREATE</span><h2>Set the pace.</h2><p className="muted">Choose a passage. You’ll be the host and the first racer.</p>
         <form onSubmit={e => { e.preventDefault(); void act(async () => (await request('races/', raceSchema, token, { method: 'POST', body: { paragraph: Number(selection) } })).id); }}>
+          <label htmlFor="difficulty-select">Difficulty by length</label>
+          <select id="difficulty-select" value={difficulty} disabled={loading || busy} onChange={e => {
+            const next = e.target.value;
+            setDifficulty(next);
+            const available = paragraphs.filter(item => next === 'all' || passageDifficulty(item.text) === next);
+            setSelection(available.some(item => String(item.id) === selection) ? selection : String(available[0]?.id || ''));
+          }}>
+            <option value="all">All lengths</option><option value="short">Short · up to 300 characters</option><option value="medium">Medium · 301–500 characters</option><option value="long">Long · 501+ characters</option>
+          </select>
           <label htmlFor="passage-select">Typing passage</label>
-          <select id="passage-select" value={selection} required disabled={loading || busy || !paragraphs.length} onChange={e => setSelection(e.target.value)}>{paragraphs.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
-          <div className="passage-preview">{loading ? 'Loading passages…' : passage?.text || 'No passages yet. Add one through Django admin.'}</div>
+          <select id="passage-select" value={selection} required disabled={loading || busy || !choices.length} onChange={e => setSelection(e.target.value)}>{choices.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+          <div className="passage-preview">{loading ? 'Loading passages…' : passage?.text || 'No passages in this length category.'}</div>
           <div className="passage-meta"><span>{passage ? Array.from(passage.text).length : 0} characters</span></div>
           <button className="button primary wide" disabled={loading || busy || !selection}>{busy ? 'Please wait…' : 'Create a race →'}</button>
         </form>

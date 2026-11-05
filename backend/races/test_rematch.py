@@ -70,6 +70,7 @@ class RematchTests(APITestCase):
         self.client.force_authenticate(self.host)
         response = self.client.post(self.url)
         self.assertEqual(response.data["paragraph_text"], frozen)
+        RaceParticipant.objects.filter(race_id=response.data["id"]).update(is_ready=True)
         started = self.client.post(reverse("race-start", args=[response.data["id"]]))
         self.assertEqual(started.status_code, 200)
         self.assertEqual(started.data["paragraph_text"], frozen)

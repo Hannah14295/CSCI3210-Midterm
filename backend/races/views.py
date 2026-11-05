@@ -55,6 +55,14 @@ class RaceViewSet(
         return Response(RaceSerializer(race).data)
 
     @action(detail=True, methods=["post"])
+    def ready(self, request, pk=None):
+        ready = request.data.get("ready")
+        if type(ready) is not bool:
+            raise serializers.ValidationError({"ready": "Send true or false."})
+        race = services.set_ready(race_id=pk, player=request.user, ready=ready)
+        return Response(RaceSerializer(race).data)
+
+    @action(detail=True, methods=["post"])
     def rematch(self, request, pk=None):
         race, created = services.create_rematch(race_id=pk, player=request.user)
         return Response(RaceSerializer(race).data,

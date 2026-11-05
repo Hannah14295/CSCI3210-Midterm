@@ -33,7 +33,7 @@ class RaceParticipantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RaceParticipant
-        fields = ["id", "player", "joined_at", "revision", "typing_started_at", "metrics", "finished_at", "elapsed_seconds", "wpm", "accuracy"]
+        fields = ["id", "player", "joined_at", "revision", "is_ready", "typing_started_at", "metrics", "finished_at", "elapsed_seconds", "wpm", "accuracy"]
         read_only_fields = fields
 
 

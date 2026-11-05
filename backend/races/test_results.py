@@ -30,8 +30,8 @@ class SavedResultTests(TestCase):
         self.other = User.objects.create_user(username="resultother")
         self.paragraph = Paragraph.objects.create(title="Result practice", text="hello world, practice today")
         self.race = Race.objects.create(host=self.player, paragraph=self.paragraph)
-        self.entry = RaceParticipant.objects.create(race=self.race, player=self.player)
-        self.other_entry = RaceParticipant.objects.create(race=self.race, player=self.other)
+        self.entry = RaceParticipant.objects.create(is_ready=True, race=self.race, player=self.player)
+        self.other_entry = RaceParticipant.objects.create(is_ready=True, race=self.race, player=self.other)
         start_race(race_id=self.race.pk, player=self.player)
         self.finish_time = timezone.now()
         self.start_time = self.finish_time - timedelta(seconds=60)
@@ -88,7 +88,7 @@ class SavedResultTests(TestCase):
 
     def test_three_players_wait_for_the_last_finish_and_keep_individual_times(self):
         third = get_user_model().objects.create_user(username="thirdfinisher")
-        RaceParticipant.objects.create(race=self.race, player=third, typing_started_at=self.start_time)
+        RaceParticipant.objects.create(is_ready=True, race=self.race, player=third, typing_started_at=self.start_time)
         self.submit(self.paragraph.text)
         self.finish_time += timedelta(seconds=10)
         self.submit("x" + self.paragraph.text[1:], player=self.other)
@@ -125,7 +125,7 @@ class LeaderboardTests(APITestCase):
     def result(self, wpm, when=None, accuracy=None):
         # Different races allow multiple historical results for the same player.
         race = Race.objects.create(host=self.player, paragraph=self.race.paragraph)
-        return RaceParticipant.objects.create(
+        return RaceParticipant.objects.create(is_ready=True,
             race=race, player=self.player, finished_at=when or self.when,
             elapsed_seconds=60, wpm=wpm, accuracy=accuracy,
         )
@@ -134,7 +134,7 @@ class LeaderboardTests(APITestCase):
         slow = self.result(30)
         fast = self.result(90)
         tied_later = self.result(90, self.when + timedelta(seconds=1))
-        RaceParticipant.objects.create(race=self.race, player=self.player)
+        RaceParticipant.objects.create(is_ready=True, race=self.race, player=self.player)
         response = self.client.get(reverse("leaderboard-list"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 3)
@@ -195,7 +195,7 @@ class LeaderboardTests(APITestCase):
         other_result = self.result(20, accuracy=90)
         other_result.player = other
         other_result.save(update_fields=["player"])
-        RaceParticipant.objects.create(race=self.race, player=self.player, wpm=9999, accuracy=100)
+        RaceParticipant.objects.create(is_ready=True, race=self.race, player=self.player, wpm=9999, accuracy=100)
         response = self.client.get(reverse("leaderboard-personal-bests"))
         self.assertEqual(response.status_code, 200)
         rows = response.data["results"]
